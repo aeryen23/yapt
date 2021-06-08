@@ -24,6 +24,7 @@ function App() {
             count is: {count}
           </button>
         </p>
+
         <div>
           <label>
             Planet: {planet} <br/>
@@ -38,11 +39,12 @@ function App() {
                 <tr><th>Material</th><th>Type</th><th>Factor</th></tr>
               </thead>
               <tbody>
-                {data?.Resources.map(res => <tr key={res.MaterialId}><td>{res.MaterialId}</td><td>{res.ResourceType}</td><td>{Math.trunc(res.Factor * 1000)/10 + "%"}</td></tr>)}
+                {data?.map(res => <tr key={res.MaterialId}><td>{res.MaterialId}</td><td>{res.ResourceType}</td><td>{Math.trunc(res.Factor * 1000)/10 + "%"}</td></tr>)}
               </tbody>
             </table>
           }
         </div>
+        
         <p>
           <a
             className="App-link"

@@ -95,10 +95,14 @@ export const apiSlice = createApi({
         return `/planet/allplanets`
       }
     }),
-    fetchPlanet: builder.query<Planet, string>({
+    fetchPlanet: builder.query<Resource[], string>({
       query(name) {
         return `/planet/${name}`
-      }
+      },
+      transformResponse(response: Planet) {
+        return response.Resources
+      },
+      keepUnusedDataFor: 60 * 60 * 24 * 7, // 1 week
     })
   }),
 })
