@@ -4,7 +4,7 @@ import './index.css'
 import App from './App'
 import { Provider } from 'react-redux'
 import { store } from './app/store'
-import { loadWorldData } from './features/world-data/world-data'
+import { loadWorldData } from './world-data'
 
 loadWorldData().then(() => {
   ReactDOM.render(
