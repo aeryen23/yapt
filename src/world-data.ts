@@ -1,8 +1,10 @@
+import { Building, BuildRequirement, CurrencyCode, CurrencyName, FactionCode, Material, Planet, Resource } from "./features/fio/fio-types";
+
 const version = 1;
 const STORAGE_KEY_PREFIX = `__FIO_v${version}_`;
 
 export const worldData = {
-  planets: [] as Planet[],
+  planets: [] as ShortPlanet[],
   materials: [] as Material[],
   buildings: [] as Building[],
 }
@@ -11,6 +13,45 @@ const urls: Record<keyof typeof worldData, string> = {
   planets: "/planet/allplanets/full",
   materials: "/material/allmaterials",
   buildings: "/building/allbuildings",
+  // systemstars: "/systemstars",
+}
+
+const modifiers: { [K in keyof typeof worldData]?: (data: any[]) => typeof worldData[K] } = {
+  planets: data => {
+    const converted = data.map((planet: Planet) => ({
+    resources: planet.Resources,
+    buildRequirements: planet.BuildRequirements,
+    id: planet.PlanetId,
+    naturalId: planet.PlanetNaturalId,
+    name: planet.PlanetName,
+    systemId: planet.SystemId,
+    orbitData: {
+      gravity:             planet.Gravity,
+      magneticField:       planet.MagneticField,
+      mass:                planet.Mass,
+      massEarth:           planet.MassEarth,
+      orbitSemiMajorAxis:  planet.OrbitSemiMajorAxis,
+      orbitEccentricity:   planet.OrbitEccentricity,
+      orbitInclination:    planet.OrbitInclination,
+      orbitRightAscension: planet.OrbitRightAscension,
+      orbitPeriapsis:      planet.OrbitPeriapsis,
+      orbitIndex:          planet.OrbitIndex,
+    },
+    surfaceData: {
+      pressure:            planet.Pressure,
+      radiation:           planet.Radiation,
+      radius:              planet.Radius,
+      sunlight:            planet.Sunlight,
+      surface:             planet.Surface,
+      temperature:         planet.Temperature,
+      fertility:           planet.Fertility,
+    },
+    tier: planet.PlanetTier,
+    factionCode: planet.FactionCode,
+  } as ShortPlanet))
+  console.log("planets", data.length, JSON.stringify(converted).length)
+  return converted
+},
 }
 
 export async function loadWorldData() {
@@ -20,144 +61,49 @@ export async function loadWorldData() {
 async function ensureData<K extends keyof typeof worldData>(name: K, url: string): Promise<void> {
   let data = loadState<typeof worldData[K]>(name)
   if (!data) {
-    data = await loadData<typeof worldData[K]>(url)
+    const serverData = await loadData(url)
+    const modifier = modifiers[name]
+    data = (modifier ? modifier(serverData) : serverData) as typeof worldData[K]
     saveState(name, data)
   }
   worldData[name] = data
 }
 
+export interface PlanetOrbitData {
+  gravity:             number;
+  magneticField:       number;
+  mass:                number;
+  massEarth:           number;
+  orbitSemiMajorAxis:  number;
+  orbitEccentricity:   number;
+  orbitInclination:    number;
+  orbitRightAscension: number;
+  orbitPeriapsis:      number;
+  orbitIndex:          number;
+}
+export interface PlanetSurfaceData {
+  pressure:            number;
+  radiation:           number;
+  radius:              number;
+  sunlight:            number;
+  surface:             boolean;
+  temperature:         number;
+  fertility:           number;
+}
 export interface ShortPlanet {
-  PlanetNaturalId: string;
-  PlanetName: string;
-}
-export interface Material {
-  CategoryName:      string;
-  CategoryId:        string;
-  Name:              string;
-  MatId:             string;
-  Ticker:            string;
-  Weight:            number;
-  Volume:            number;
-  UserNameSubmitted: string;
-  Timestamp:         string;
+  resources:         Resource[];
+  buildRequirements: BuildRequirement[];
+  id:                 string;
+  naturalId:          string;
+  name:               string;
+  systemId:           string;
+  orbitData:          PlanetOrbitData;
+  surfaceData:        PlanetSurfaceData;
+  factionCode?:       FactionCode;
+  tier:         number;
 }
 
-export interface Building {
-  BuildingCosts:     MaterialAmount[];
-  Recipes:           Recipe[];
-  Name:              string;
-  Ticker:            string;
-  Expertise:         string;//BuildingCategory? empty?
-  Pioneers:          number;
-  Settlers:          number;
-  Technicians:       number;
-  Engineers:         number;
-  Scientists:        number;
-  AreaCost:          number;
-  UserNameSubmitted: string;
-  Timestamp:         string;
-}
-
-export interface MaterialAmount {
-  CommodityName:   string;
-  CommodityTicker: string;
-  Weight:          number;
-  Volume:          number;
-  Amount:          number;
-}
-
-export interface Recipe {
-  Inputs:     MaterialAmount[];
-  Outputs:    MaterialAmount[];
-  DurationMs: number;
-  RecipeName: string;
-}
-
-export type ResourceType = "GASEOUS" | "LIQUID" | "MINERAL"
-export interface Resource {
-  MaterialId:   string;
-  ResourceType: ResourceType;
-  Factor:       number;
-}
-export interface Planet {
-  Resources:               Resource[];
-  BuildRequirements:       BuildRequirement[];
-  ProductionFees:          ProductionFee[];
-  COGCPrograms:            any[];
-  COGCVotes:               any[];
-  COGCUpkeep:              any[];
-  PlanetId:                string;
-  PlanetNaturalId:         string;
-  PlanetName:              string;
-  Namer:                   string | null;
-  NamingDataEpochMs:       number;
-  Nameable:                boolean;
-  SystemId:                string;
-  Gravity:                 number;
-  MagneticField:           number;
-  Mass:                    number;
-  MassEarth:               number;
-  OrbitSemiMajorAxis:      number;
-  OrbitEccentricity:       number;
-  OrbitInclination:        number;
-  OrbitRightAscension:     number;
-  OrbitPeriapsis:          number;
-  OrbitIndex:              number;
-  Pressure:                number;
-  Radiation:               number;
-  Radius:                  number;
-  Sunlight:                number;
-  Surface:                 boolean;
-  Temperature:             number;
-  Fertility:               number;
-  HasLocalMarket:          boolean;
-  HasChamberOfCommerce:    boolean;
-  HasWarehouse:            boolean;
-  HasAdministrationCenter: boolean;
-  HasShipyard:             boolean;
-  FactionCode:             string | null;
-  FactionName:             string | null;
-  GovernorId:              null;
-  GovernorUserName:        null;
-  GovernorCorporationId:   string | null;
-  GovernorCorporationName: string | null;
-  GovernorCorporationCode: string | null;
-  CurrencyName:            string | null;
-  CurrencyCode:            string | null;
-  CollectorId:             string | null;
-  CollectorName:           string | null;
-  CollectorCode:           string | null;
-  BaseLocalMarketFee:      number;
-  LocalMarketFeeFactor:    number;
-  WarehouseFee:            number;
-  PopulationId:            string;
-  COGCProgramStatus:       null;
-  PlanetTier:              number;
-  UserNameSubmitted:       string;
-  Timestamp:               string;
-}
-
-export interface BuildRequirement {
-  MaterialName:     string;
-  MaterialId:       string;
-  MaterialTicker:   string;
-  MaterialCategory: string;
-  MaterialAmount:   number;
-  MaterialWeight:   number;
-  MaterialVolume:   number;
-}
-
-export interface ProductionFee {
-  Category:    BuildingCategory;
-  FeeAmount:   number;
-  FeeCurrency: CurrencyCode;
-}
-export type CurrencyCode = "AIC" | "CIS" | "ICA" | "NCC"
-
-export type BuildingCategory = "AGRICULTURE" | "CHEMISTRY" | "CONSTRUCTION" | "ELECTRONICS" | "FOOD_INDUSTRIES" | "FUEL_REFINING" | "MANUFACTURING" | "METALLURGY" | "RESOURCE_EXTRACTION"
-
-
-async function loadData<T>(url: string): Promise<T> {
+async function loadData(url: string): Promise<any> {
   const response = await fetch("https://rest.fnar.net" + url, {
     headers: {
       'Content-Type': 'application/json',
