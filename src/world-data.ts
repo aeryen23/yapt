@@ -1,13 +1,114 @@
-import { Building, BuildRequirement, CurrencyCode, CurrencyName, FactionCode, Material, Planet, Resource } from "./features/fio/fio-types";
-
-const version = 1;
-const STORAGE_KEY_PREFIX = `__FIO_v${version}_`;
+import {
+  FioBuilding, FioCommodityAmount, FactionCode,
+  FioMaterial, FioPlanet, ResourceType, BuildingCategory,
+  FioSystemStar, FioWorldSector, StarType
+} from "./features/fio/fio-types";
 
 export const worldData = {
-  planets: [] as ShortPlanet[],
+  planets: [] as Planet[],
   materials: [] as Material[],
   buildings: [] as Building[],
 }
+
+export async function loadWorldData() {
+  await openDb();
+  ([worldData.materials, worldData.buildings, worldData.planets] = await Promise.all([
+    getAll<Material>("materials"),
+    getAll<Building>("buildings"),
+    getAll<Planet>("planets"),
+  ]));
+}
+
+export interface Material {
+  id: string;
+  name: string;
+  category: string;
+  weight: number;
+  volume: number;
+}
+
+export type Commodities = Record<string, number>
+
+export interface Recipe {
+  inputs: Commodities;
+  outputs: Commodities;
+  durationMs: number;
+}
+
+export interface Building {
+  id: string;
+  name: string;
+  costs: Commodities;
+  recipes: Recipe[];
+  expertise?: BuildingCategory;
+  workforce: {
+    Pioneers: number;
+    Settlers: number;
+    Technicians: number;
+    Engineers: number;
+    Scientists: number;
+  }
+  area: number;
+}
+
+export interface PlanetOrbitData {
+  gravity: number;
+  magneticField: number;
+  mass: number;
+  massEarth: number;
+  orbitSemiMajorAxis: number;
+  orbitEccentricity: number;
+  orbitInclination: number;
+  orbitRightAscension: number;
+  orbitPeriapsis: number;
+  orbitIndex: number;
+}
+export interface PlanetSurfaceData {
+  pressure: number;
+  radiation: number;
+  radius: number;
+  sunlight: number;
+  surface: boolean;
+  temperature: number;
+  fertility: number;
+}
+export interface Planet {
+  id: string;
+  name: string;
+  // systemId: string;
+  resources: {
+    material: string;
+    perDay: number;
+    type: ResourceType,
+  }[];
+  cmCosts: Commodities;
+  orbitData: PlanetOrbitData;
+  surfaceData: PlanetSurfaceData;
+  factionCode?: FactionCode;
+  tier: number;
+}
+
+export interface Star {
+  connections: string[];
+  id: string;
+  name: string;
+  position: Position;
+  sector: string;
+  subSector: string;
+  system: string;
+  type: StarType;
+}
+
+export interface Sector {
+  id: string;
+  name: string;
+  position: Position;
+  subSectors: {
+    id: string;
+    vertices: Position[];
+  }[];
+}
+export type Position = number[] // 3 numbers
 
 const urls: Record<keyof typeof worldData, string> = {
   planets: "/planet/allplanets/full",
@@ -16,94 +117,154 @@ const urls: Record<keyof typeof worldData, string> = {
   // systemstars: "/systemstars",
 }
 
-const modifiers: { [K in keyof typeof worldData]?: (data: any[]) => typeof worldData[K] } = {
-  planets: data => {
-    const converted = data.map((planet: Planet) => ({
-    resources: planet.Resources,
-    buildRequirements: planet.BuildRequirements,
-    id: planet.PlanetId,
-    naturalId: planet.PlanetNaturalId,
-    name: planet.PlanetName,
-    systemId: planet.SystemId,
-    orbitData: {
-      gravity:             planet.Gravity,
-      magneticField:       planet.MagneticField,
-      mass:                planet.Mass,
-      massEarth:           planet.MassEarth,
-      orbitSemiMajorAxis:  planet.OrbitSemiMajorAxis,
-      orbitEccentricity:   planet.OrbitEccentricity,
-      orbitInclination:    planet.OrbitInclination,
-      orbitRightAscension: planet.OrbitRightAscension,
-      orbitPeriapsis:      planet.OrbitPeriapsis,
-      orbitIndex:          planet.OrbitIndex,
-    },
-    surfaceData: {
-      pressure:            planet.Pressure,
-      radiation:           planet.Radiation,
-      radius:              planet.Radius,
-      sunlight:            planet.Sunlight,
-      surface:             planet.Surface,
-      temperature:         planet.Temperature,
-      fertility:           planet.Fertility,
-    },
-    tier: planet.PlanetTier,
-    factionCode: planet.FactionCode,
-  } as ShortPlanet))
-  console.log("planets", data.length, JSON.stringify(converted).length)
-  return converted
-},
-}
+let db: IDBDatabase
 
-export async function loadWorldData() {
-  await Promise.all(Object.entries(urls).map(([key, url]) => ensureData(key as keyof typeof worldData, url)))
-}
+async function openDb() {
+  let needsInitializing = false
+  db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open("world-data", 1)
+    request.onupgradeneeded = (e) => {
+      const db = request.result;
+      if (e.oldVersion < 1) {
+        db.createObjectStore("materials", { keyPath: "id" })
+        db.createObjectStore("buildings", { keyPath: "id" })
+        db.createObjectStore("planets", { keyPath: "id" })
+        db.createObjectStore("stars", { keyPath: "id" })
+        db.createObjectStore("sectors", { keyPath: "id" })
+      }
+      needsInitializing = true
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = reject
+  })
+  if (needsInitializing) {
+    console.log("initializing world data")
 
-async function ensureData<K extends keyof typeof worldData>(name: K, url: string): Promise<void> {
-  let data = loadState<typeof worldData[K]>(name)
-  if (!data) {
-    const serverData = await loadData(url)
-    const modifier = modifiers[name]
-    data = (modifier ? modifier(serverData) : serverData) as typeof worldData[K]
-    saveState(name, data)
+    const materialsFio = await loadData<FioMaterial[]>(urls.materials)
+    // const matIdToTicker: Record<string, string> = materialsFio.reduce((acc, mat) => ({ ...acc, [mat.MatId]: mat.Ticker }), {})
+    const materials: Material[] = materialsFio.map(mat => ({
+      id: mat.Ticker,
+      name: mat.Name,
+      category: mat.CategoryName,
+      weight: mat.Weight,
+      volume: mat.Volume,
+    }))
+    await putAll("materials", materials)
+
+    const buildingsFio = await loadData<FioBuilding[]>(urls.buildings)
+    const mapCA = (amounts: FioCommodityAmount[]) => amounts.reduce((acc, ca) => ({ ...acc, [ca.CommodityTicker]: ca.Amount }), {})
+    const buildings: Building[] = buildingsFio.map(bui => ({
+      id: bui.Ticker,
+      name: bui.Name,
+      costs: mapCA(bui.BuildingCosts),
+      recipes: bui.Recipes.map<Recipe>(r => ({
+        inputs: mapCA(r.Inputs),
+        outputs: mapCA(r.Outputs),
+        durationMs: r.DurationMs,
+      })),
+      expertise: bui.Expertise || undefined,
+      workforce: {
+        Pioneers: bui.Pioneers,
+        Settlers: bui.Settlers,
+        Technicians: bui.Technicians,
+        Engineers: bui.Engineers,
+        Scientists: bui.Scientists,
+      },
+      area: bui.AreaCost,
+    }))
+    const productionBuildings = buildings.filter(bui => bui.recipes.length)
+    await putAll("buildings", productionBuildings)
+
+    const planetsFio = await loadData<FioPlanet[]>(urls.planets)
+    // const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
+    const planets: Planet[] = planetsFio.map(planet => ({
+      id: planet.PlanetNaturalId,
+      name: planet.PlanetName,
+      resources: planet.Resources.map<Planet['resources'][0]>(r => ({
+        material: r.MaterialId,
+        perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 0.7 : 0.6),
+        type: r.ResourceType,
+      })),
+      cmCosts: planet.BuildRequirements.reduce((acc, r) => ({ ...acc, [r.MaterialTicker]: r.MaterialAmount }), {}),
+      orbitData: {
+        gravity: planet.Gravity,
+        magneticField: planet.MagneticField,
+        mass: planet.Mass,
+        massEarth: planet.MassEarth,
+        orbitSemiMajorAxis: planet.OrbitSemiMajorAxis,
+        orbitEccentricity: planet.OrbitEccentricity,
+        orbitInclination: planet.OrbitInclination,
+        orbitRightAscension: planet.OrbitRightAscension,
+        orbitPeriapsis: planet.OrbitPeriapsis,
+        orbitIndex: planet.OrbitIndex,
+      },
+      surfaceData: {
+        pressure: planet.Pressure,
+        radiation: planet.Radiation,
+        radius: planet.Radius,
+        sunlight: planet.Sunlight,
+        surface: planet.Surface,
+        temperature: planet.Temperature,
+        fertility: planet.Fertility,
+      },
+      factionCode: planet.FactionCode || undefined,
+      tier: planet.PlanetTier,
+    }))
+    await putAll("planets", planets)
+
+    const starsFio = await loadData<FioSystemStar[]>("/systemstars")
+    const stars: Star[] = starsFio.map(star => ({
+      id: star.NaturalId,
+      system: star.SystemId,
+      name: star.Name,
+      type: star.Type,
+      position: [star.PositionX, star.PositionY, star.PositionZ],
+      sector: star.SectorId,
+      subSector: star.SubSectorId,
+      connections: star.Connections.map(c => c.Connection)
+    }))
+    await putAll("stars", stars)
+
+    const sectorsFio = await loadData<FioWorldSector[]>("/systemstars/worldsectors")
+    const sectors: Sector[] = sectorsFio.map(sector => ({
+      id: sector.SectorId,
+      name: sector.Name,
+      position: [sector.HexQ, sector.HexR, sector.HexS],
+      subSectors: sector.SubSectors.map(sub => ({
+        id: sub.SSId,
+        vertices: sub.Vertices.map(v => [v.X, v.Y, v.Z])
+      })),
+    }))
+    await putAll("sectors", sectors)
+
+    console.log("finished initializing world data")
   }
-  worldData[name] = data
 }
 
-export interface PlanetOrbitData {
-  gravity:             number;
-  magneticField:       number;
-  mass:                number;
-  massEarth:           number;
-  orbitSemiMajorAxis:  number;
-  orbitEccentricity:   number;
-  orbitInclination:    number;
-  orbitRightAscension: number;
-  orbitPeriapsis:      number;
-  orbitIndex:          number;
-}
-export interface PlanetSurfaceData {
-  pressure:            number;
-  radiation:           number;
-  radius:              number;
-  sunlight:            number;
-  surface:             boolean;
-  temperature:         number;
-  fertility:           number;
-}
-export interface ShortPlanet {
-  resources:         Resource[];
-  buildRequirements: BuildRequirement[];
-  id:                 string;
-  naturalId:          string;
-  name:               string;
-  systemId:           string;
-  orbitData:          PlanetOrbitData;
-  surfaceData:        PlanetSurfaceData;
-  factionCode?:       FactionCode;
-  tier:         number;
+async function getAll<T>(storeName: string) {
+  return new Promise<T[]>(resolve => {
+    const transaction = db.transaction(storeName);
+    const store = transaction.objectStore(storeName)
+    const request = store.getAll()
+    request.onsuccess = () => {
+      resolve(request.result)
+    }
+  })
 }
 
-async function loadData(url: string): Promise<any> {
+async function putAll<T>(storeName: string, objects: T[]) {
+  await new Promise<void>(resolve => {
+    const transaction = db.transaction(storeName, "readwrite");
+    transaction.oncomplete = () => {
+      resolve()
+    }
+    const store = transaction.objectStore(storeName)
+    for (const object of objects)
+      store.put(object)
+  })
+}
+
+async function loadData<T = any>(url: string): Promise<T> {
   const response = await fetch("https://rest.fnar.net" + url, {
     headers: {
       'Content-Type': 'application/json',
@@ -111,37 +272,4 @@ async function loadData(url: string): Promise<any> {
     }
   })
   return await response.json()
-}
-
-function saveState<T = object>(name: string, storeState: T): boolean {
-  if (!localStorage) {
-    return false;
-  }
-
-  try {
-    const serializedState = JSON.stringify(storeState);
-    localStorage.setItem(STORAGE_KEY_PREFIX + name, serializedState);
-    return true;
-  } catch (error) {
-    // ignore read errors
-    console.error('store serialization failed', name, error);
-    return false;
-  }
-}
-
-function loadState<T = object>(name: string): T | undefined {
-  if (!localStorage) {
-    return;
-  }
-
-  try {
-    const serializedState = localStorage.getItem(STORAGE_KEY_PREFIX + name);
-    if (serializedState == null) {
-      return;
-    }
-    return JSON.parse(serializedState);
-  } catch (error) {
-    // ignore write errors
-    console.error('store deserialization failed', name, error);
-  }
 }

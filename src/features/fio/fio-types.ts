@@ -1,4 +1,4 @@
-export interface Material {
+export interface FioMaterial {
   CategoryName:      string;
   CategoryId:        string;
   Name:              string;
@@ -10,12 +10,12 @@ export interface Material {
   Timestamp:         string;
 }
 
-export interface Building {
-  BuildingCosts:     MaterialAmount[];
-  Recipes:           Recipe[];
+export interface FioBuilding {
+  BuildingCosts:     FioCommodityAmount[];
+  Recipes:           FioRecipe[];
   Name:              string;
   Ticker:            string;
-  Expertise:         string;//BuildingCategory? empty?
+  Expertise:         BuildingCategory | null;
   Pioneers:          number;
   Settlers:          number;
   Technicians:       number;
@@ -26,7 +26,7 @@ export interface Building {
   Timestamp:         string;
 }
 
-export interface MaterialAmount {
+export interface FioCommodityAmount {
   CommodityName:   string;
   CommodityTicker: string;
   Weight:          number;
@@ -34,22 +34,22 @@ export interface MaterialAmount {
   Amount:          number;
 }
 
-export interface Recipe {
-  Inputs:     MaterialAmount[];
-  Outputs:    MaterialAmount[];
+export interface FioRecipe {
+  Inputs:     FioCommodityAmount[];
+  Outputs:    FioCommodityAmount[];
   DurationMs: number;
   RecipeName: string;
 }
 
 export type ResourceType = "GASEOUS" | "LIQUID" | "MINERAL"
-export interface Resource {
+export interface FioResource {
   MaterialId:   string;
   ResourceType: ResourceType;
   Factor:       number;
 }
-export interface Planet {
-  Resources:               Resource[];
-  BuildRequirements:       BuildRequirement[];
+export interface FioPlanet {
+  Resources:               FioResource[];
+  BuildRequirements:       FioBuildRequirement[];
   ProductionFees:          ProductionFee[];
   COGCPrograms:            any[];
   COGCVotes:               any[];
@@ -105,7 +105,7 @@ export interface Planet {
   Timestamp:               string;
 }
 
-export interface BuildRequirement {
+export interface FioBuildRequirement {
   MaterialName:     string;
   MaterialId:       string;
   MaterialTicker:   string;
@@ -138,3 +138,43 @@ export interface ProductionFee {
 export type CurrencyCode = "AIC" | "CIS" | "ICA" | "NCC"
 
 export type BuildingCategory = "AGRICULTURE" | "CHEMISTRY" | "CONSTRUCTION" | "ELECTRONICS" | "FOOD_INDUSTRIES" | "FUEL_REFINING" | "MANUFACTURING" | "METALLURGY" | "RESOURCE_EXTRACTION"
+
+
+export interface FioSystemStar {
+  Connections:       { Connection: string; }[];
+  SystemId:          string;
+  Name:              string;
+  NaturalId:         string;
+  Type:              StarType;
+  PositionX:         number;
+  PositionY:         number;
+  PositionZ:         number;
+  SectorId:          string;
+  SubSectorId:       string;
+  UserNameSubmitted: null;
+  Timestamp:         string;
+}
+export type StarType = "A" | "B" | "F" | "G" | "K" | "M" | "O"
+
+export interface FioWorldSector {
+  SubSectors:        SubSector[];
+  SectorId:          string;
+  Name:              string;
+  HexQ:              number;
+  HexR:              number;
+  HexS:              number;
+  Size:              number;
+  UserNameSubmitted: null;
+  Timestamp:         string;
+}
+
+export interface SubSector {
+  Vertices: Vertex[];
+  SSId:     string;
+}
+
+export interface Vertex {
+  X: number;
+  Y: number;
+  Z: number;
+}
