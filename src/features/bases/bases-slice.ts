@@ -1,17 +1,18 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
+import uuid from 'uuid-random';
 
 interface Base {
   id: string,
-  PlanetId: string,
+  planet: string,
   // buildings, recipes, ...
   // market data
 }
 interface BasesState {
-  bases: Base[];
+  list: Base[];
 }
 
 const initialState: BasesState = {
-  bases: [],
+  list: [makeEmptyBase("OT-580b")],
 }
 
 const BasesSlice = createSlice({
@@ -19,12 +20,14 @@ const BasesSlice = createSlice({
   initialState,
   reducers: {
     add(state, action: PayloadAction<string>) {
-      state.bases.push({ id: generateId(), PlanetId: action.payload })
+      state.list.push(makeEmptyBase(action.payload))
     },
     remove(state, action: PayloadAction<string>) {
-      const idx = state.bases.findIndex(base => base.id == action.payload)
+      if (state.list.length < 2)
+        return // don't allow last base to be deleted
+      const idx = state.list.findIndex(base => base.id == action.payload)
       if (idx !== -1)
-        state.bases.splice(idx, 1)
+        state.list.splice(idx, 1)
     },
   }
 })
@@ -32,7 +35,8 @@ const BasesSlice = createSlice({
 export const { add, remove } = BasesSlice.actions
 export default BasesSlice.reducer
 
+function generateId() { return nanoid(); }
 
-import uuid from 'uuid-random';
-
-function generateId() { return uuid(); }
+function makeEmptyBase(planet: string): Base {
+  return { id: generateId(), planet }
+}

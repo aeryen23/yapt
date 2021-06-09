@@ -5,9 +5,10 @@ import {
 } from "./features/fio/fio-types";
 
 export const worldData = {
-  planets: [] as Planet[],
   materials: [] as Material[],
+  materialCategories: [] as string[],
   buildings: [] as Building[],
+  planets: [] as Planet[],
 }
 
 export async function loadWorldData() {
@@ -17,6 +18,7 @@ export async function loadWorldData() {
     getAll<Building>("buildings"),
     getAll<Planet>("planets"),
   ]));
+  worldData.materialCategories = [...new Set(worldData.materials.map(mat => mat.category))].sort()
 }
 
 export interface Material {
@@ -110,13 +112,6 @@ export interface Sector {
 }
 export type Position = number[] // 3 numbers
 
-const urls: Record<keyof typeof worldData, string> = {
-  planets: "/planet/allplanets/full",
-  materials: "/material/allmaterials",
-  buildings: "/building/allbuildings",
-  // systemstars: "/systemstars",
-}
-
 let db: IDBDatabase
 
 async function openDb() {
@@ -140,7 +135,7 @@ async function openDb() {
   if (needsInitializing) {
     console.log("initializing world data")
 
-    const materialsFio = await loadData<FioMaterial[]>(urls.materials)
+    const materialsFio = await loadData<FioMaterial[]>("/material/allmaterials")
     // const matIdToTicker: Record<string, string> = materialsFio.reduce((acc, mat) => ({ ...acc, [mat.MatId]: mat.Ticker }), {})
     const materials: Material[] = materialsFio.map(mat => ({
       id: mat.Ticker,
@@ -151,7 +146,7 @@ async function openDb() {
     }))
     await putAll("materials", materials)
 
-    const buildingsFio = await loadData<FioBuilding[]>(urls.buildings)
+    const buildingsFio = await loadData<FioBuilding[]>("/building/allbuildings")
     const mapCA = (amounts: FioCommodityAmount[]) => amounts.reduce((acc, ca) => ({ ...acc, [ca.CommodityTicker]: ca.Amount }), {})
     const buildings: Building[] = buildingsFio.map(bui => ({
       id: bui.Ticker,
@@ -175,7 +170,7 @@ async function openDb() {
     const productionBuildings = buildings.filter(bui => bui.recipes.length)
     await putAll("buildings", productionBuildings)
 
-    const planetsFio = await loadData<FioPlanet[]>(urls.planets)
+    const planetsFio = await loadData<FioPlanet[]>("/planet/allplanets/full")
     // const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
     const planets: Planet[] = planetsFio.map(planet => ({
       id: planet.PlanetNaturalId,

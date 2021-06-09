@@ -1,9 +1,11 @@
 import React from 'react'
 import './App.css'
+import BaseList from './features/bases/base-list'
 
 function Planner() {
   return (<div>
     Prun Base Planner
+    <BaseList />
   </div>)
 }
 
