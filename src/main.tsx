@@ -4,12 +4,15 @@ import './index.css'
 import App from './App'
 import { Provider } from 'react-redux'
 import { store } from './app/store'
+import { loadWorldData } from './features/world-data/world-data'
 
-ReactDOM.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>
-  </React.StrictMode>,
-  document.getElementById('root')
-)
+loadWorldData().then(() => {
+  ReactDOM.render(
+    <React.StrictMode>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </React.StrictMode>,
+    document.getElementById('root')
+  )
+})

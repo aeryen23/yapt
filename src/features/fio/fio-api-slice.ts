@@ -90,6 +90,7 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: "https://rest.fnar.net" }),
   endpoints: (builder) => ({
+    // TODO: instead get CX info -> prices
     fetchPlanets: builder.query<ShortPlanet[], void>({
       query() {
         return `/planet/allplanets`
