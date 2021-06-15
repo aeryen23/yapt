@@ -4,11 +4,13 @@ import {
   FioSystemStar, FioWorldSector, StarType
 } from "./features/fio/fio-types";
 
+type Map<T> = Record<string, T>
+
 export const worldData = {
-  materials: [] as Material[],
+  materials: {} as Map<Material>,
   materialCategories: [] as string[],
-  buildings: [] as Building[],
-  planets: [] as Planet[],
+  buildings: {} as Map<Building>,
+  planets: {} as Map<Planet>,
 }
 
 export async function loadWorldData() {
@@ -18,7 +20,7 @@ export async function loadWorldData() {
     getAll<Building>("buildings"),
     getAll<Planet>("planets"),
   ]));
-  worldData.materialCategories = [...new Set(worldData.materials.map(mat => mat.category))].sort()
+  worldData.materialCategories = [...new Set(Object.values(worldData.materials).map(mat => mat.category))].sort()
 }
 
 export interface Material {
@@ -114,6 +116,8 @@ export type Position = number[] // 3 numbers
 
 let db: IDBDatabase
 
+const ID_MAP_STORE = "idMaps"
+
 async function openDb() {
   let needsInitializing = false
   db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -126,6 +130,7 @@ async function openDb() {
         db.createObjectStore("planets", { keyPath: "id" })
         db.createObjectStore("stars", { keyPath: "id" })
         db.createObjectStore("sectors", { keyPath: "id" })
+        db.createObjectStore(ID_MAP_STORE)
       }
       needsInitializing = true
     }
@@ -136,7 +141,7 @@ async function openDb() {
     console.log("initializing world data")
 
     const materialsFio = await loadData<FioMaterial[]>("/material/allmaterials")
-    // const matIdToTicker: Record<string, string> = materialsFio.reduce((acc, mat) => ({ ...acc, [mat.MatId]: mat.Ticker }), {})
+    const matIdToTicker: Record<string, string> = materialsFio.reduce((acc, mat) => ({ ...acc, [mat.MatId]: mat.Ticker }), {})
     const materials: Material[] = materialsFio.map(mat => ({
       id: mat.Ticker,
       name: mat.Name,
@@ -145,6 +150,7 @@ async function openDb() {
       volume: mat.Volume,
     }))
     await putAll("materials", materials)
+    await putIdMap("materials", matIdToTicker)
 
     const buildingsFio = await loadData<FioBuilding[]>("/building/allbuildings")
     const mapCA = (amounts: FioCommodityAmount[]) => amounts.reduce((acc, ca) => ({ ...acc, [ca.CommodityTicker]: ca.Amount }), {})
@@ -171,13 +177,13 @@ async function openDb() {
     await putAll("buildings", productionBuildings)
 
     const planetsFio = await loadData<FioPlanet[]>("/planet/allplanets/full")
-    // const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
+    const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
     const planets: Planet[] = planetsFio.map(planet => ({
       id: planet.PlanetNaturalId,
       name: planet.PlanetName,
       resources: planet.Resources.map<Planet['resources'][0]>(r => ({
-        material: r.MaterialId,
-        perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 0.7 : 0.6),
+        material: matIdToTicker[r.MaterialId],
+        perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
         type: r.ResourceType,
       })),
       cmCosts: planet.BuildRequirements.reduce((acc, r) => ({ ...acc, [r.MaterialTicker]: r.MaterialAmount }), {}),
@@ -206,6 +212,7 @@ async function openDb() {
       tier: planet.PlanetTier,
     }))
     await putAll("planets", planets)
+    await putIdMap("planets", planetIdtoId)
 
     const starsFio = await loadData<FioSystemStar[]>("/systemstars")
     const stars: Star[] = starsFio.map(star => ({
@@ -236,13 +243,17 @@ async function openDb() {
   }
 }
 
-async function getAll<T>(storeName: string) {
-  return new Promise<T[]>(resolve => {
+async function getAll<T extends { id: string }>(storeName: string) {
+  return new Promise<Record<string, T>>(resolve => {
     const transaction = db.transaction(storeName);
     const store = transaction.objectStore(storeName)
     const request = store.getAll()
     request.onsuccess = () => {
-      resolve(request.result)
+      const data = request.result as T[]
+      const result: Record<string, T> = {}
+      for (const e of data)
+        result[e.id] = e
+      resolve(result)
     }
   })
 }
@@ -256,6 +267,17 @@ async function putAll<T>(storeName: string, objects: T[]) {
     const store = transaction.objectStore(storeName)
     for (const object of objects)
       store.put(object)
+  })
+}
+
+async function putIdMap(key: string, object: Record<string, string>) {
+  await new Promise<void>(resolve => {
+    const transaction = db.transaction(ID_MAP_STORE, "readwrite");
+    transaction.oncomplete = () => {
+      resolve()
+    }
+    const store = transaction.objectStore(ID_MAP_STORE)
+    store.put(object, key)
   })
 }
 

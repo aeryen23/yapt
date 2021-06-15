@@ -37,6 +37,32 @@
   }
 }
 
-button {
+.sidebar {
+  position: relative;
+  width: 52px;
+
+  background:  linear-gradient(to right, #262626 0, #191919 100%) repeat-x;
+  /* background: linear-gradient(to right, @color-background-base 0, darken(@color-background-base, 5%) 100%) repeat-x; */
+}
+
+.body {
+  flex-grow: 1;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+.main {
+  position: relative;
+  flex-grow: 1;
+}
+
+.foot {
   font-size: calc(10px + 2vmin);
+  height: calc(20px + 2vmin);
+  background-color: darken(#262626, 2%);
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }

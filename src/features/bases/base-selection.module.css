@@ -1,0 +1,10 @@
+.selection {
+  color: grey;
+  margin-right: 4;
+}
+.selection .selected {
+  color: lightgrey;
+}
+.selection:hover {
+  color: white;
+}
