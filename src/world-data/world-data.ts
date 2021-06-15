@@ -2,7 +2,7 @@ import {
   FioBuilding, FioCommodityAmount, FactionCode,
   FioMaterial, FioPlanet, ResourceType, BuildingCategory,
   FioSystemStar, FioWorldSector, StarType
-} from "./features/fio/fio-types";
+} from "../features/fio/fio-types";
 
 type Map<T> = Record<string, T>
 
@@ -13,6 +13,7 @@ export const worldData = {
   planets: {} as Map<Planet>,
 }
 
+// TODO: split loading, type defs etc
 export async function loadWorldData() {
   await openDb();
   ([worldData.materials, worldData.buildings, worldData.planets] = await Promise.all([
@@ -76,15 +77,16 @@ export interface PlanetSurfaceData {
   temperature: number;
   fertility: number;
 }
+export interface PlanetResource {
+  material: string;
+  perDay: number;
+  type: ResourceType,
+}
 export interface Planet {
   id: string;
   name: string;
   // systemId: string;
-  resources: {
-    material: string;
-    perDay: number;
-    type: ResourceType,
-  }[];
+  resources: PlanetResource[];
   cmCosts: Commodities;
   orbitData: PlanetOrbitData;
   surfaceData: PlanetSurfaceData;
