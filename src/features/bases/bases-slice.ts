@@ -1,13 +1,25 @@
 import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
 import { useAppSelector } from "../../app/hooks";
+import { RootState } from "../../app/store";
 
-interface Base {
+export interface Base {
   id: string,
   planet: string,
   name?: string,
+  buildings: Record<string, BaseBuilding>,
   // buildings, recipes, ...
   // market data
 }
+export interface BaseBuilding {
+  building: string,
+  amount: number,
+  recipes: BaseBuildingRecipe[]
+}
+export interface BaseBuildingRecipe {
+  recipe: string,
+  amount: number,
+}
+
 interface BasesState {
   list: Base[];
   currentId: string;
@@ -41,17 +53,40 @@ const BasesSlice = createSlice({
     },
     select(state, action: PayloadAction<string>) {
       state.currentId = action.payload
-    }
+    },
+    addBuilding(state, action: PayloadAction<string>) {
+      const current = state.list.filter(b => b.id == state.currentId)[0]
+      const existing = current.buildings[action.payload]
+      if (existing)
+        existing.amount++
+      else
+        current.buildings[action.payload] = { building: action.payload, amount: 1, recipes: [] }
+    },
+    removeBuilding(state, action: PayloadAction<string>) {
+      const current = state.list.filter(b => b.id == state.currentId)[0]
+      const existing = current.buildings[action.payload]
+      if (!existing)
+        throw new Error("Can't remove non-existing building")
+      if (existing.amount > 0)
+        existing.amount--
+    },
+    addRecipe(state, action: PayloadAction<[string, string]>) {
+      const current = state.list.filter(b => b.id == state.currentId)[0]
+      const existing = current.buildings[action.payload[0]]
+      if (!existing)
+        throw new Error("Can't add recipe to non-existing building")
+      // existing.recipes.filter
+    },
   }
 })
 
-export const { add, remove, select } = BasesSlice.actions
+export const { add, remove, select, addBuilding, removeBuilding } = BasesSlice.actions
 export default BasesSlice.reducer
 
 function generateId() { return nanoid(); }
 
 function makeEmptyBase(planet: string): Base {
-  return { id: generateId(), planet }
+  return { id: generateId(), planet, buildings: {} }
 }
 
 export function currentBaseId() {

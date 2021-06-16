@@ -10,6 +10,8 @@ export const worldData = {
   materials: {} as Map<Material>,
   materialCategories: [] as string[],
   buildings: {} as Map<Building>,
+  buildingsProduction: {} as Record<keyof Building["workforce"], string[]>,
+  buildingCategories: {} as Record<BuildingType, string[]>,
   planets: {} as Map<Planet>,
 }
 
@@ -22,6 +24,16 @@ export async function loadWorldData() {
     getAll<Planet>("planets"),
   ]));
   worldData.materialCategories = [...new Set(Object.values(worldData.materials).map(mat => mat.category))].sort()
+
+  let allBuildingIds = Object.keys(worldData.buildings)
+  for (const type of Object.keys(BuildingType) as BuildingType[])
+    worldData.buildingCategories[type] = allBuildingIds.filter(id => worldData.buildings[id].type == type)
+
+  let productionBuildingIds = worldData.buildingCategories[BuildingType.PRODUCTION]
+  for (const wf of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as (keyof Building["workforce"])[]) {
+    worldData.buildingsProduction[wf] = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] > 0)
+    productionBuildingIds = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] == 0)
+  }
 }
 
 export interface Material {
@@ -40,9 +52,23 @@ export interface Recipe {
   durationMs: number;
 }
 
+// export type BuildingType = "CORE" | "STORAGE" | "HABITATION" | "RESOURCES" | "PRODUCTION" | "PLANETARY_PROJECT"
+export enum BuildingType {
+  CORE = "CORE",
+  STORAGE = "STORAGE",
+  HABITATION = "HABITATION",
+  RESOURCES = "RESOURCES",
+  PRODUCTION = "PRODUCTION",
+  PLANETARY_PROJECT = "PLANETARY_PROJECT",
+  CORPORATION_PROJECT = "CORPORATION_PROJECT",
+}
+export type WorkforceLevel = "Pioneers" | "Settlers" | "Technicians" | "Engineers" | "Scientists"
+
 export interface Building {
   id: string;
   name: string;
+  type: BuildingType,
+  workforceLevel: WorkforceLevel,
   costs: Commodities;
   recipes: Recipe[];
   expertise?: BuildingCategory;
@@ -159,6 +185,8 @@ async function openDb() {
     const buildings: Building[] = buildingsFio.map(bui => ({
       id: bui.Ticker,
       name: bui.Name,
+      type: BuildingType.PRODUCTION,
+      workforceLevel: "Pioneers",
       costs: mapCA(bui.BuildingCosts),
       recipes: bui.Recipes.map<Recipe>(r => ({
         inputs: mapCA(r.Inputs),
@@ -175,8 +203,32 @@ async function openDb() {
       },
       area: bui.AreaCost,
     }))
-    const productionBuildings = buildings.filter(bui => bui.recipes.length)
-    await putAll("buildings", productionBuildings)
+    for (const bui of buildings) {
+      // NOTE: the type is not transfered by FIO, so we just create it our own based on some heuristics
+      if (bui.id == "CM")
+        bui.type = BuildingType.CORE
+      else if (bui.id == "STO")
+        bui.type = BuildingType.STORAGE
+      else if (bui.name.startsWith("planetaryProject"))
+        bui.type = BuildingType.PLANETARY_PROJECT
+      else if (bui.name.startsWith("corporationProject"))
+        bui.type = BuildingType.CORPORATION_PROJECT
+      else if (bui.recipes.length) {
+        if (bui.expertise == "RESOURCE_EXTRACTION" && bui.recipes.filter(r => Object.keys(r.inputs).length == 0).length > 0)
+          bui.type = BuildingType.RESOURCES
+        else {
+          bui.type = BuildingType.PRODUCTION
+          for (const level of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as WorkforceLevel[])
+            if (bui.workforce[level] > 0) {
+              bui.workforceLevel = level
+              break;
+            }
+        }
+      }
+      else
+        bui.type = BuildingType.HABITATION
+    }
+    await putAll("buildings", buildings)
 
     const planetsFio = await loadData<FioPlanet[]>("/planet/allplanets/full")
     const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
