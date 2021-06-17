@@ -13,15 +13,18 @@ export const worldData = {
   buildingsProduction: {} as Record<keyof Building["workforce"], string[]>,
   buildingCategories: {} as Record<BuildingType, string[]>,
   planets: {} as Map<Planet>,
+  systems: {} as Map<System>,
 }
 
 // TODO: split loading, type defs etc
 export async function loadWorldData() {
+  await openFetchDb();
   await openDb();
-  ([worldData.materials, worldData.buildings, worldData.planets] = await Promise.all([
+  ([worldData.materials, worldData.buildings, worldData.planets, worldData.systems] = await Promise.all([
     getAll<Material>("materials"),
     getAll<Building>("buildings"),
     getAll<Planet>("planets"),
+    getAll<System>("systems"),
   ]));
   worldData.materialCategories = [...new Set(Object.values(worldData.materials).map(mat => mat.category))].sort()
 
@@ -111,7 +114,7 @@ export interface PlanetResource {
 export interface Planet {
   id: string;
   name: string;
-  // systemId: string;
+  system: string;
   resources: PlanetResource[];
   cmCosts: Commodities;
   orbitData: PlanetOrbitData;
@@ -120,15 +123,15 @@ export interface Planet {
   tier: number;
 }
 
-export interface Star {
+export interface System {
   connections: string[];
   id: string;
   name: string;
   position: Position;
   sector: string;
   subSector: string;
-  system: string;
   type: StarType;
+  planets: string[];
 }
 
 export interface Sector {
@@ -156,7 +159,7 @@ async function openDb() {
         db.createObjectStore("materials", { keyPath: "id" })
         db.createObjectStore("buildings", { keyPath: "id" })
         db.createObjectStore("planets", { keyPath: "id" })
-        db.createObjectStore("stars", { keyPath: "id" })
+        db.createObjectStore("systems", { keyPath: "id" })
         db.createObjectStore("sectors", { keyPath: "id" })
         db.createObjectStore(ID_MAP_STORE)
       }
@@ -230,11 +233,16 @@ async function openDb() {
     }
     await putAll("buildings", buildings)
 
+    const systemsFio = await loadData<FioSystemStar[]>("/systemstars")
+    const systemIdtoId: Record<string, string> = systemsFio.reduce((acc, system) => ({ ...acc, [system.SystemId]: system.NaturalId }), {})
+    await putIdMap("systems", systemIdtoId)
+
     const planetsFio = await loadData<FioPlanet[]>("/planet/allplanets/full")
     const planetIdtoId: Record<string, string> = planetsFio.reduce((acc, planet) => ({ ...acc, [planet.PlanetId]: planet.PlanetNaturalId }), {})
     const planets: Planet[] = planetsFio.map(planet => ({
       id: planet.PlanetNaturalId,
       name: planet.PlanetName,
+      system: systemIdtoId[planet.SystemId],
       resources: planet.Resources.map<Planet['resources'][0]>(r => ({
         material: matIdToTicker[r.MaterialId],
         perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
@@ -263,23 +271,38 @@ async function openDb() {
         fertility: planet.Fertility,
       },
       factionCode: planet.FactionCode || undefined,
-      tier: planet.PlanetTier,
+      tier: 0, //planet.PlanetTier, it is not set for some planets, so just always re-calculate it
     }))
+    for (const planet of planets)
+      if (planet.tier == 0) {
+        planet.tier = 1
+        if (planet.cmCosts["SEA"])
+          planet.tier++
+        if (planet.cmCosts["BL"])
+          planet.tier++
+        if (planet.cmCosts["MGC"])
+          planet.tier++
+        if (planet.cmCosts["HSE"])
+          planet.tier += 2
+        if (planet.cmCosts["INS"])
+          planet.tier += 3
+        if (planet.cmCosts["TSH"])
+          planet.tier += 3
+      }
     await putAll("planets", planets)
     await putIdMap("planets", planetIdtoId)
 
-    const starsFio = await loadData<FioSystemStar[]>("/systemstars")
-    const stars: Star[] = starsFio.map(star => ({
-      id: star.NaturalId,
-      system: star.SystemId,
-      name: star.Name,
-      type: star.Type,
-      position: [star.PositionX, star.PositionY, star.PositionZ],
-      sector: star.SectorId,
-      subSector: star.SubSectorId,
-      connections: star.Connections.map(c => c.Connection)
+    const systems: System[] = systemsFio.map(system => ({
+      id: system.NaturalId,
+      name: system.Name,
+      type: system.Type,
+      position: [system.PositionX, system.PositionY, system.PositionZ],
+      sector: system.SectorId,
+      subSector: system.SubSectorId,
+      connections: system.Connections.map(c => systemIdtoId[c.Connection]),
+      planets: planets.filter(p => p.system == system.NaturalId).map(p => p.id),
     }))
-    await putAll("stars", stars)
+    await putAll("systems", systems)
 
     const sectorsFio = await loadData<FioWorldSector[]>("/systemstars/worldsectors")
     const sectors: Sector[] = sectorsFio.map(sector => ({
@@ -325,18 +348,69 @@ async function putAll<T>(storeName: string, objects: T[]) {
 }
 
 async function putIdMap(key: string, object: Record<string, string>) {
+  await put(key, object, ID_MAP_STORE)
+}
+
+async function put<T = any>(key: string | undefined, object: T, storeName: string, mydb = db) {
   await new Promise<void>(resolve => {
-    const transaction = db.transaction(ID_MAP_STORE, "readwrite");
+    const transaction = mydb.transaction(storeName, "readwrite");
     transaction.oncomplete = () => {
       resolve()
     }
-    const store = transaction.objectStore(ID_MAP_STORE)
+    const store = transaction.objectStore(storeName)
     store.put(object, key)
   })
 }
+async function get<T>(key: string, storeName: string, mydb = db): Promise<T | undefined> {
+  return await new Promise<T>(resolve => {
+    const transaction = mydb.transaction(storeName, "readwrite");
+    const store = transaction.objectStore(storeName)
+    const request = store.get(key)
+    transaction.oncomplete = () => {
+      resolve(request.result)
+    }
+  })
+}
 
-async function loadData<T = any>(url: string): Promise<T> {
-  const response = await fetch("https://rest.fnar.net" + url, {
+let fetchDb: IDBDatabase
+const FETCH_STORE = "fetches"
+
+async function openFetchDb() {
+  fetchDb = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open("fetches", 1)
+    request.onupgradeneeded = (e) => {
+      const db = request.result;
+      if (e.oldVersion < 1) {
+        db.createObjectStore(FETCH_STORE, { keyPath: "url" })
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = reject
+  })
+  await loadData<FioMaterial[]>("/material/allmaterials")
+  await loadData<FioBuilding[]>("/building/allbuildings")
+}
+
+type FetchResult<T> = {
+  url: string
+  timestamp: Date
+  data: T
+}
+
+async function loadData<T = any>(fioPath: string): Promise<T> {
+  // TODO: enable fetch db stuff only for debugging
+  const url = "https://rest.fnar.net" + fioPath
+  let fetchResult = await get<FetchResult<T>>(url, FETCH_STORE, fetchDb)
+  if (fetchResult)
+    return fetchResult.data
+  const result = await fetchData<T>(url)
+  await put<FetchResult<T>>(undefined, { url, timestamp: new Date(), data: result }, FETCH_STORE, fetchDb)
+  return result
+}
+
+async function fetchData<T = any>(url: string): Promise<T> {
+  console.log("fetching data", url)
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'

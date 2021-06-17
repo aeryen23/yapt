@@ -2,10 +2,13 @@ import React from 'react'
 import './App.css'
 import BaseSelection from './features/bases/base-selection'
 import BaseScreen from './features/bases/base-screen'
+import PlanetSearch from './features/planet-search/planet-search'
 import DataLists from './world-data/data-lists'
 
 function Planner() {
-  return <BaseScreen/>
+  if (true)
+    return <PlanetSearch />
+  return <BaseScreen />
 }
 
 function App() {
@@ -14,7 +17,7 @@ function App() {
   const foot = <div className="foot"><BaseSelection /></div>
   return (
     <div className="App">
-      <DataLists/>
+      <DataLists />
       <header className="App-header">
         <div className="body">
           {head}
