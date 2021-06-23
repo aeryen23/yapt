@@ -12,13 +12,12 @@ function Planner() {
 }
 
 function App() {
-  const head = "Prun Base Planner"
+  const head = null
   const body = <Planner />
   const foot = <div className="foot"><BaseSelection /></div>
   return (
     <div className="App">
       <DataLists />
-      <header className="App-header">
         <div className="body">
           {head}
           <div className="main">
@@ -26,7 +25,6 @@ function App() {
           </div>
           {foot}
         </div>
-      </header>
     </div >
   )
 }

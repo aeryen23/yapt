@@ -5,6 +5,7 @@ export enum List {
   buildings,
   materials,
   planets,
+  systems,
 };
 
 const LIST_PREFIX = "LIST_"
@@ -18,12 +19,14 @@ const listGetter: Record<List, () => ListData> = {
   [List.buildings]: () => id(worldData.buildings),
   [List.materials]: () => id(worldData.materials),
   [List.planets]: () => Object.entries(worldData.planets).map(([id, planet]) => [id, planet.name]),
+  [List.systems]: () => Object.entries(worldData.systems).map(([id, system]) => [id, system.name]),
 }
 
 const listValidate: Record<List, (id: string) => boolean> = {
   [List.buildings]: (id) => !!worldData.buildings[id],
   [List.materials]: (id) => !!worldData.materials[id],
   [List.planets]: (id) => !!worldData.planets[id],
+  [List.systems]: (id) => !!worldData.systems[id],
 }
 function id(map: Record<string, { id: string }>): ListData {
   return Object.keys(map).map(id => [id, id]);
