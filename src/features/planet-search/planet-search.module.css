@@ -1,0 +1,19 @@
+.table {
+    border-collapse: collapse;
+    color: rgb(187, 187, 187);
+}
+
+.table th,
+.table td {
+    border-width: 0 1px;
+    border-style: solid;
+    border-color: rgb(43, 72, 90);
+}
+
+.table th {
+    border-width: 1px;
+}
+
+.table tr:last-child>td {
+    border-width: 0 1px 1px 1px;
+}

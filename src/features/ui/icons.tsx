@@ -2,28 +2,28 @@ import React from "react"
 import styles from "./icons.module.css"
 import { worldData } from "../../world-data/world-data"
 
-function styleForMaterial(materialId: string) {
+export function styleForMaterial(materialId: string) {
   const category = worldData.materials[materialId].category.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
   return styles[category] ?? styles.defaultColor
 }
-export function MaterialIcon({ materialId, amount, size = 48, isSelected = false, onClick }: { materialId: string, amount?: number, size?: number, isSelected?: boolean, onClick?: (material: string, amount?: number) => void }) {
+export function MaterialIcon({ materialId, amount, size = 48, fontFactor = 0.33, isSelected = false, onClick }: { materialId: string, amount?: number, size?: number, fontFactor?: number, isSelected?: boolean, onClick?: (material: string, amount?: number) => void }) {
   const actualSize = size
   const containerStyle = {}
 
   return (<div className={styles.container} style={containerStyle}>
-    <Icon label={materialId} colorClass={styleForMaterial(materialId)} size={actualSize} isSelected={isSelected} onClick={e => onClick && onClick(materialId, amount)} />
+    <Icon label={materialId} colorClass={styleForMaterial(materialId)} size={actualSize} fontFactor={fontFactor} isSelected={isSelected} onClick={e => onClick && onClick(materialId, amount)} />
     {!amount ? null : (<div className={styles.indicatorContainer}>
       <div className={styles.indicator}>{amount}</div>
     </div>)}
   </div>)
 }
 
-export function Icon({ label, size = 48, colorClass = styles.defaultColor, hoverText, isSelected = false, onClick, children }: { label: string, size?: number, colorClass?: string, hoverText?: string, isSelected?: boolean, onClick?: (e: React.MouseEvent) => void, children?: JSX.Element | JSX.Element[] }) {
+export function Icon({ label, size = 48, fontFactor = 0.33, colorClass = styles.defaultColor, hoverText, isSelected = false, onClick, children }: { label: string, size?: number, fontFactor?: number, colorClass?: string, hoverText?: string, isSelected?: boolean, onClick?: (e: React.MouseEvent) => void, children?: JSX.Element | JSX.Element[] }) {
   const title = hoverText || label
   const containerStyle = {
     height: size,
     width: size,
-    fontSize: size * 0.33,
+    fontSize: size * fontFactor,
     cursor: onClick ? 'pointer' : 'default'
   }
   const classes = [styles.container, colorClass]
