@@ -14,6 +14,7 @@ export const worldData = {
   buildingCategories: {} as Record<BuildingType, string[]>,
   planets: {} as Map<Planet>,
   systems: {} as Map<System>,
+  planetMaxResources: {} as Record<string, number>,
 }
 
 // TODO: split loading, type defs etc
@@ -37,6 +38,15 @@ export async function loadWorldData() {
     worldData.buildingsProduction[wf] = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] > 0)
     productionBuildingIds = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] == 0)
   }
+
+  worldData.planetMaxResources = {}
+  for (const planet of Object.values(worldData.planets))
+    for (const { material, perDay } of planet.resources) {
+      if (!worldData.planetMaxResources[material])
+        worldData.planetMaxResources[material] = perDay
+      else
+        worldData.planetMaxResources[material] = Math.max(worldData.planetMaxResources[material], perDay)
+    }
 }
 
 export interface Material {

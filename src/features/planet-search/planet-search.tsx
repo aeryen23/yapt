@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react"
-import { worldData } from "../../world-data/world-data"
+import { PlanetResource, worldData } from "../../world-data/world-data"
 import { currentBase } from "../bases/bases-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
@@ -112,7 +112,8 @@ export default function PlanetSearch() {
     }
     console.timeEnd("Evaluate planets")
     newResult.sort((a, b) => {
-      // TODO: make the sort criterium configurable?! e.g. sort by resource rate, necessary building mats
+      // TODO: sort necessary building mats (per column), both mats alphabetically, then no mat
+      // TODO: sorting does not work when e.g. mat filter changes
       const res = (() => {
         if (sortColumn == 0)
           return a.jumps - b.jumps
@@ -166,6 +167,11 @@ export default function PlanetSearch() {
     return () => { }
   }
 
+  function showResource(r: PlanetResource) {
+    const percentage = r.perDay / worldData.planetMaxResources[r.material]
+    return <>{numberForUser(r.perDay) + materialTypeIcon[r.type]}<div style={{ width: "0.5em", height: percentage + "em", backgroundColor: `rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0)` }} /></>
+  }
+
   return <div>
     <div style={{ border: "1 solid white" }}>
       System: <input value={startSystem} onChange={e => { setStartSystem(e.target.value) }} list="LIST_systems"></input>
@@ -185,7 +191,6 @@ export default function PlanetSearch() {
           <MaterialIcon key={mat} materialId={mat} size={32} isSelected={materialFilter.indexOf(mat) != -1} onClick={toggleMaterialFilter} />
         </div>)).flat()
       }
-      <Icon label="🌾" hoverText="Fertility" size={32} />
       <div style={{ margin: 1, position: "relative" }}>
         <Icon label="Clear" size={32} colorClass="" onClick={() => setMaterialFilter([])} />
       </div>
@@ -194,6 +199,7 @@ export default function PlanetSearch() {
       </div>
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
+      <Icon label="🌾" hoverText="Fertility" size={32} />
       {additionalBuildingMaterials.map(mat => <div style={{ margin: 1 }}>
         <MaterialIcon key={mat} materialId={mat} size={32} isSelected={buildingMaterials.indexOf(mat) != -1} onClick={toggleBuildingMaterialFilter} />
       </div>)}
@@ -232,14 +238,13 @@ export default function PlanetSearch() {
                 return <td className={used ? styleForMaterial(used) : ""}>{used}</td>
               }).flat()}
               {
-                materialFilter.map(filter => <td className={styleForMaterial(filter)} style={{ textAlign: "right" }}>
-                  {planet.resources.filter(r => r.material == filter).map(r => numberForUser(r.perDay) + materialTypeIcon[r.type]).flat() || null}
-                </td>
-                )
+                materialFilter.map(filter => <td className={styleForMaterial(filter)} style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>
+                  {planet.resources.filter(r => r.material == filter).map(r => showResource(r)).flat() || null}
+                </td>)
               }
               {
                 planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r => <>
-                  <td className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{numberForUser(r.perDay) + r.material + materialTypeIcon[r.type]}</td>
+                  <td className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div><div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>{showResource(r)}</div></div>}</td>
                 </>).concat(new Array(5).fill(<td />)).slice(0, 5).flat()
               }
             </tr>)
