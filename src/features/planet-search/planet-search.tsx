@@ -22,7 +22,7 @@ const DOWN = "▼";
 const HEADERS = {
   Jumps: "#",
   Planet: "Planet",
-  Fertility: "🌾",
+  Fertility: "🌾🌱",
   [`Type
 Rocky or Gaseous`]: "🪐",
   Pressure: "💨",
@@ -30,6 +30,14 @@ Rocky or Gaseous`]: "🪐",
   Gravity: "⚛️",
 }
 const NUM_HEADERS = Object.keys(HEADERS).length
+
+const infrastructure = "🚧🏪🏦🏬🏛️🏗️";
+// Local Market
+// Chamber of Commerce
+// Warehouse
+// Administration Center
+// Shipyard
+const test = "📉📈💰"
 
 let allResources: { category: string, materials: string[] }[] | undefined = undefined
 function getAllResources() {
@@ -49,6 +57,13 @@ function getAllResources() {
 
 const additionalBuildingMaterials = ["MCG", "AEF", "SEA", "HSE", "INS", "TSH", "MGC", "BL"]
 
+let CX_DISTANCES: Record<string, Map<string, number>> | undefined
+function getCxDistances() {
+  if (!CX_DISTANCES)
+    CX_DISTANCES = Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system) }), {})
+  return CX_DISTANCES
+}
+
 export default function PlanetSearch() {
   const [startSystem, setStartSystem] = useState(worldData.planets[currentBase().planet].system)
   const [systems, setSystems] = useState(new Map<string, number>())
@@ -63,27 +78,7 @@ export default function PlanetSearch() {
     if (!worldData.systems[startSystem])
       return
     console.time("Evaluate jumps")
-    const evaluated = new Map<string, number>()
-    evaluated.set(startSystem, 0)
-    let next = []
-    let later = [startSystem]
-    // TODO: it can take 15ms to evaluate all planets :/
-    while (later.length) {
-      next = later;
-      later = []
-      while (next.length) {
-        const checkId: string = next.pop()!
-        const jumps = evaluated.get(checkId)! + 1
-        const check = worldData.systems[checkId]
-        for (const other of check.connections) {
-          if (evaluated.has(other))
-            continue;
-          evaluated.set(other, jumps)
-          later.push(other)
-        }
-      }
-    }
-    setSystems(evaluated)
+    setSystems(calculateSystemDistances(startSystem))
     console.timeEnd("Evaluate jumps")
   }, [startSystem])
   useEffect(() => {
@@ -113,19 +108,23 @@ export default function PlanetSearch() {
     console.timeEnd("Evaluate planets")
     newResult.sort((a, b) => {
       // TODO: sort necessary building mats (per column), both mats alphabetically, then no mat
-      // TODO: sorting does not work when e.g. mat filter changes
+      // TODO: sorting does not work when e.g. mat filter changes. also using a number does not work when columns can be added in the middle
       const res = (() => {
         if (sortColumn == 0)
           return a.jumps - b.jumps
         else if (sortColumn == 2)
           return worldData.planets[b.planet].surfaceData.fertility - worldData.planets[a.planet].surfaceData.fertility
-        else {
+        else if (sortColumn >= NUM_HEADERS && sortColumn < NUM_HEADERS + materialFilter.length) {
           const filter = materialFilter[sortColumn - NUM_HEADERS]
           function getResourcePerDay(planet: string) {
             const res = worldData.planets[planet].resources.filter(r => r.material == filter)[0]
             return res ? res.perDay : 0
           }
           return getResourcePerDay(b.planet) - getResourcePerDay(a.planet)
+        } else {
+          const cxData = Object.values(getCxDistances())[sortColumn - (NUM_HEADERS + materialFilter.length + 5)]!
+          function getJumps(planet: string) { return cxData.get(worldData.planets[planet].system)!; }
+          return getJumps(a.planet) - getJumps(b.planet)
         }
         return 0
       })()
@@ -146,8 +145,10 @@ export default function PlanetSearch() {
   function toggleMaterialFilter(mat: string) {
     if (materialFilter.indexOf(mat) == -1)
       setMaterialFilter([...materialFilter, mat])
-    else
+    else {
       setMaterialFilter(materialFilter.filter(m => m != mat))
+      // TODO: if filtered material as the current sorting one, reset sort order
+    }
   }
   function toggleBuildingMaterialFilter(mat: string) {
     if (buildingMaterials.indexOf(mat) == -1)
@@ -156,7 +157,6 @@ export default function PlanetSearch() {
       setBuildingMaterials(buildingMaterials.filter(m => m != mat))
   }
   // TODO: color filtered materials under planet list as well
-  // TODO: have a fixed material order and use it for all planets?! (maybe already implicit?)
   // TODO: show max available material rate in material filter of currently available planets + hide materials for which no planets are available anymore
   // TODO: add option to hide planets without resources even if no filter is selected
   // TODO: PERF!!!
@@ -169,8 +169,10 @@ export default function PlanetSearch() {
 
   function showResource(r: PlanetResource) {
     const percentage = r.perDay / worldData.planetMaxResources[r.material]
-    return <>{numberForUser(r.perDay) + materialTypeIcon[r.type]}<div style={{ width: "0.5em", height: percentage + "em", backgroundColor: `rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0)` }} /></>
+    return <div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>{numberForUser(r.perDay) + materialTypeIcon[r.type]}<div style={{ width: "0.5em", height: percentage + "em", backgroundColor: `rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0)` }} /></div>
   }
+
+  const cxDistances = getCxDistances();
 
   return <div>
     <div style={{ border: "1 solid white" }}>
@@ -211,6 +213,7 @@ export default function PlanetSearch() {
             {Object.entries(HEADERS).map(([title, text], index) => <th title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
             {materialFilter.map((filter, index) => <th title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
             <th colSpan={5}></th>
+            {Object.keys(cxDistances).map((cx, index) => <th onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -238,15 +241,16 @@ export default function PlanetSearch() {
                 return <td className={used ? styleForMaterial(used) : ""}>{used}</td>
               }).flat()}
               {
-                materialFilter.map(filter => <td className={styleForMaterial(filter)} style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>
+                materialFilter.map(filter => <td className={styleForMaterial(filter)}>
                   {planet.resources.filter(r => r.material == filter).map(r => showResource(r)).flat() || null}
                 </td>)
               }
               {
                 planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r => <>
-                  <td className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div><div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>{showResource(r)}</div></div>}</td>
+                  <td className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}</td>
                 </>).concat(new Array(5).fill(<td />)).slice(0, 5).flat()
               }
+              {Object.values(cxDistances).map((distPerSystem: Map<string, number>) => <td>{distPerSystem.get(worldData.planets[r.planet].system)}</td>)}
             </tr>)
           })}
         </tbody>
@@ -266,3 +270,28 @@ const selectedColors = [
   "Aquamarine",
 ]
 selectedColors[-1] = "white"
+
+function calculateSystemDistances(startSystem: string) {
+  console.log("calculateSystemDistances", startSystem)
+  // TODO: it can take 15ms to evaluate all planets :/
+  const evaluated = new Map<string, number>()
+  evaluated.set(startSystem, 0)
+  let next = []
+  let later = [startSystem]
+  while (later.length) {
+    next = later;
+    later = []
+    while (next.length) {
+      const checkId: string = next.pop()!
+      const jumps = evaluated.get(checkId)! + 1
+      const check = worldData.systems[checkId]
+      for (const other of check.connections) {
+        if (evaluated.has(other))
+          continue;
+        evaluated.set(other, jumps)
+        later.push(other)
+      }
+    }
+  }
+  return evaluated
+}
