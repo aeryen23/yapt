@@ -12,9 +12,18 @@ export const worldData = {
   buildings: {} as Map<Building>,
   buildingsProduction: {} as Record<keyof Building["workforce"], string[]>,
   buildingCategories: {} as Record<BuildingType, string[]>,
+  material: {
+    usedIn: {} as Record<string, string[]>,
+    producedIn: {} as Record<string, string[]>,
+  },
   planets: {} as Map<Planet>,
   systems: {} as Map<System>,
   planetMaxResources: {} as Record<string, number>,
+}
+function add(container: Record<string, string[]>, key: string, value: string) {
+  if (!container[key])
+    container[key] = []
+  container[key].push(value)
 }
 
 // TODO: split loading, type defs etc
@@ -37,6 +46,17 @@ export async function loadWorldData() {
   for (const wf of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as (keyof Building["workforce"])[]) {
     worldData.buildingsProduction[wf] = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] > 0)
     productionBuildingIds = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] == 0)
+  }
+
+  for (const bui of worldData.buildingCategories[BuildingType.PRODUCTION]) {
+    const building = worldData.buildings[bui]
+    for (const recipe of building.recipes) {
+      for (const output of Object.keys(recipe.outputs)) {
+        add(worldData.material.producedIn, output, bui)
+        for (const input of Object.keys(recipe.inputs))
+          add(worldData.material.usedIn, input, output)
+      }
+    }
   }
 
   worldData.planetMaxResources = {}

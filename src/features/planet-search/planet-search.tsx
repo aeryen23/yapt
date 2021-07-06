@@ -175,6 +175,7 @@ export default function PlanetSearch() {
   const cxDistances = getCxDistances();
 
   return <div>
+    <SortableTable />
     <div style={{ border: "1 solid white" }}>
       System: <input value={startSystem} onChange={e => { setStartSystem(e.target.value) }} list="LIST_systems"></input>
       Jumps: <input type="number" value={maxJumps} onChange={e => {
@@ -295,3 +296,48 @@ function calculateSystemDistances(startSystem: string) {
   }
   return evaluated
 }
+
+function SortableTable() {
+  const headerNames = ["Jumps", "Name", "Rate"];
+  const entries = [{ key: "1", jumps: 20, name: "A", rate: "10.2" }, { key: "2", jumps: 3, name: "C", rate: "2.5" }, { key: "3", jumps: 10, name: "B", rate: "2.5" }];
+  const headerKeys = ["jumps", "name", "rate"];
+  const sortFn = {
+    jumps: (a: number, b: number) => a - b
+  }
+
+  return <SortableTableInternal headers={["jumps", "name", "rate"]} entries={entries} />
+}
+
+
+/**
+ * - sort by number, but display e.g. only 2 decimal places
+ * - sort inc/dec(/toggle?)
+ * - string sort
+ * - no sort on column
+ */
+type TableSortFunctions<T, K extends keyof T> = Partial<Record<K, (a: T[K], b: T[K]) => number>>
+
+function SortableTableInternal<T extends Record<string, string | number> & { key: string }, K extends keyof T>({ headers, entries, sortFn = {} }: { headers: K[], entries: T[], sortFn?: Partial<Record<K, (a: T[K], b: T[K]) => number>> }) {
+  const sortedEntries = [...entries]
+  const [sortedField, setSortedField] = useState(headers[0])
+
+  // const sf = sortFn[headers[0]];
+  // if (sf)
+  //   sortedEntries.sort((a, b) => sf(a[headers[0]], b[headers[0]]))
+
+  // needs some values to inc, some to dec
+  sortedEntries.sort((a, b) => a[sortedField] - b[sortedField]) // -> does not work with strings -> NaN -> does not sort
+
+  return (<table>
+    <thead>
+      <tr>
+        {headers.map(header => sortFn[header] ? <td onClick={() => setSortedField(header)}>{header}</td> : <td>{header}</td>)}
+      </tr>
+    </thead>
+    <tbody>
+      {sortedEntries.map(e => <tr key={e.key}>{headers.map(key => <td>{e[key]}</td>)}</tr>)}
+    </tbody>
+  </table>)
+}
+
+// TODO: Material listings with prices / production chain planning

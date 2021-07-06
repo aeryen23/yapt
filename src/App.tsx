@@ -3,9 +3,15 @@ import './App.css'
 import BaseSelection from './features/bases/base-selection'
 import BaseScreen from './features/bases/base-screen'
 import PlanetSearch from './features/planet-search/planet-search'
+import { RoiList } from './features/roi/roi'
+import { LongtermPlanner } from './features/longterm/longterm'
 import DataLists from './world-data/data-lists'
 
 function Planner() {
+  if (true)
+  return <LongtermPlanner />
+  if (true)
+    return <RoiList />
   if (true)
     return <PlanetSearch />
   return <BaseScreen />
@@ -18,13 +24,13 @@ function App() {
   return (
     <div className="App">
       <DataLists />
-        <div className="body">
-          {head}
-          <div className="main">
-            {body}
-          </div>
-          {foot}
+      <div className="body">
+        {head}
+        <div className="main">
+          {body}
         </div>
+        {foot}
+      </div>
     </div >
   )
 }

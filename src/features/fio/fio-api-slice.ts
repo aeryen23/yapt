@@ -85,6 +85,76 @@ export interface ShortPlanet {
   PlanetName: string;
 }
 
+export interface PriceInfo {
+  Ticker:         string;
+  MMBuy:          number;
+  MMSell:         null;
+  "CI1-Average":  number;
+  "CI1-AskAmt":   number;
+  "CI1-AskPrice": number;
+  "CI1-AskAvail": number;
+  "CI1-BidAmt":   number;
+  "CI1-BidPrice": number;
+  "CI1-BidAvail": number;
+  "NC1-Average":  number;
+  "NC1-AskAmt":   number;
+  "NC1-AskPrice": number;
+  "NC1-AskAvail": number;
+  "NC1-BidAmt":   number;
+  "NC1-BidPrice": number;
+  "NC1-BidAvail": number;
+  "IC1-Average":  number;
+  "IC1-AskAmt":   number;
+  "IC1-AskPrice": number;
+  "IC1-AskAvail": number;
+  "IC1-BidAmt":   number;
+  "IC1-BidPrice": number;
+  "IC1-BidAvail": number;
+}
+
+export interface CXTickerInfo {
+  BuyingOrders:        CXOrder[];
+  SellingOrders:       CXOrder[];
+  MaterialBrokerId:    string;
+  MaterialName:        string;
+  MaterialTicker:      string;
+  MaterialId:          string;
+  ExchangeName:        string;
+  ExchangeCode:        string;
+  Currency:            string;
+  Previous:            number;
+  Price:               number;
+  PriceTimeEpochMs:    number;
+  High:                number;
+  AllTimeHigh:         number;
+  Low:                 number;
+  AllTimeLow:          number;
+  Ask:                 number;
+  AskCount:            number;
+  Bid:                 number;
+  BidCount:            number;
+  Supply:              number;
+  Demand:              number;
+  Traded:              number;
+  VolumeAmount:        number;
+  PriceAverage:        number;
+  NarrowPriceBandLow:  number;
+  NarrowPriceBandHigh: number;
+  WidePriceBandLow:    number;
+  WidePriceBandHigh:   number;
+  MMBuy:               number;
+  MMSell:              number;
+  UserNameSubmitted:   string;
+  Timestamp:           string;
+}
+
+export interface CXOrder {
+  CompanyId:   string;
+  CompanyName: string;
+  CompanyCode: string;
+  ItemCount:   number | null;
+  ItemCost:    number;
+}
 
 export const apiSlice = createApi({
   reducerPath: 'api',
@@ -104,8 +174,19 @@ export const apiSlice = createApi({
         return response.Resources
       },
       keepUnusedDataFor: 60 * 60 * 24 * 7, // 1 week
-    })
+    }),
+    fetchCXTicker: builder.query<CXTickerInfo, string>({
+      query(ticker) {
+        return `/exchange/${ticker}`
+      }
+    }),
+    fetchPrices: builder.query<PriceInfo[], void>({
+      query() {
+        return `/rain/prices`
+      },
+      keepUnusedDataFor: 60 * 60 * 24 * 7, // 1 week for debugging TODO: reduce
+    }),
   }),
 })
 
-export const { useFetchPlanetQuery } = apiSlice
+export const { useFetchPlanetQuery, useFetchPricesQuery } = apiSlice
