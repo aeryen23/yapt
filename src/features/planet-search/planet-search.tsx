@@ -6,6 +6,18 @@ import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { numberForUser } from "../utils/utils"
 import styles from "./planet-search.module.css"
 
+/*
+- fix page title
+- correctly remembering what is sorted
+- different cursor hover sorting headers
+- explanation(help) window explaining what the fields mean
+- filter out planets with resources less than a specified value/percentage
+- show max resource amount, e.g. on tooltip of bar / on material filter
+- show infrastructure projects + filter?
+- better visibility for selected (building-)material filter
+- check layout on phone
+*/
+
 type SingleResult = {
   planet: string
   jumps: number
