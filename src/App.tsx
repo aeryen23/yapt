@@ -8,8 +8,8 @@ import { LongtermPlanner } from './features/longterm/longterm'
 import DataLists from './world-data/data-lists'
 
 function Planner() {
-  if (true)
-  return <LongtermPlanner />
+  if (false)
+    return <LongtermPlanner />
   if (true)
     return <RoiList />
   if (true)
