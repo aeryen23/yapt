@@ -176,8 +176,8 @@ export function RoiList() {
   return (<>
     <div style={{ display: "flex", flexDirection: "row" }}>
       <div style={{ margin: "0 2px" }}>Planet: <PlanetInput value={planet} onChange={setPlanet} /></div>
-      <div style={{ margin: "0 2px" }}>Workforce: {Object.keys(usableWorkforce).map(wf => <label><input type="checkbox" checked={usableWorkforce[wf as keyof typeof usableWorkforce]} onChange={e => setUsableWorkforce({ ...usableWorkforce, [wf]: e.target.checked })}></input>{wf}</label>).flat()}</div>
-      <div style={{ margin: "0 2px" }}>Consumables: {Object.keys(usableConsumables).map(cons => <label><input type="checkbox" checked={usableConsumables[cons as keyof typeof usableConsumables]} onChange={e => setUsableConsumables({ ...usableConsumables, [cons]: e.target.checked })}></input>{cons}</label>).flat()}</div>
+      <div style={{ margin: "0 2px" }}>Workforce: {Object.keys(usableWorkforce).map(wf => <label key={wf}><input type="checkbox" checked={usableWorkforce[wf as keyof typeof usableWorkforce]} onChange={e => setUsableWorkforce({ ...usableWorkforce, [wf]: e.target.checked })}></input>{wf}</label>).flat()}</div>
+      <div style={{ margin: "0 2px" }}>Consumables: {Object.keys(usableConsumables).map(cons => <label key={cons}><input type="checkbox" checked={usableConsumables[cons as keyof typeof usableConsumables]} onChange={e => setUsableConsumables({ ...usableConsumables, [cons]: e.target.checked })}></input>{cons}</label>).flat()}</div>
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "max-content auto max-content auto auto auto auto auto" }}>
       <div>BUI</div>

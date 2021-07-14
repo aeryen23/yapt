@@ -1,0 +1,62 @@
+.component {
+    display: flex;
+    flex-direction: column;
+}
+
+.tabs {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    margin-right: 2px;
+    margin-bottom: 1px;
+}
+
+.tab {
+    line-height: 15px;
+    display: inline-block;
+    padding: 3px 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #999;
+    cursor: pointer;
+}
+
+.tab:hover {
+    color: #ddd;
+}
+
+a:hover {
+    color: #f7a600
+}
+
+.tab:hover>button {
+    display: inline-block;
+}
+
+.tabActive {
+    color: #ddd;
+}
+
+.tabActive :hover {
+    color: #ddd;
+}
+
+.toggleIndicator {
+    display: inline-block;
+    width: 100%;
+    height: 2px;
+    background-color: rgba(247, 166, 0, 0.15);
+}
+
+.toggleIndicatorActive {
+    background-color: #f7a600;
+}
+
+.content {
+    position: relative;
+    flex-grow: 5;
+}

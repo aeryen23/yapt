@@ -5,8 +5,9 @@ import { addBuilding, BaseBuilding, currentBase } from './bases-slice'
 import { numberForUser } from '../utils/utils'
 import styles from './base-screen.module.css'
 import { SelectBuilding } from '../../world-data/buildings'
+import BaseSelection from './base-selection'
 
-export default function BaseScreen() {
+export function BaseScreen() {
   // const dispatch = useAppDispatch()
   const current = currentBase()
   const planet = worldData.planets[current.planet]
@@ -17,6 +18,7 @@ export default function BaseScreen() {
     {current.name ? current.planet + " - " + current.name : current.planet}<br />
     <BaseResources resources={planet.resources} />
     <BaseBuildings />
+    <div className="foot"><BaseSelection /></div>
   </div>)
 }
 

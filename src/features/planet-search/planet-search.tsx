@@ -7,7 +7,7 @@ import { numberForUser } from "../utils/utils"
 import styles from "./planet-search.module.css"
 
 /*
-- fix page title
+- fix unicode chars that are not working on phone: 🪐🧱
 - correctly remembering what is sorted
 - different cursor hover sorting headers
 - explanation(help) window explaining what the fields mean
@@ -34,7 +34,7 @@ const DOWN = "▼";
 const HEADERS = {
   Jumps: "#",
   Planet: "Planet",
-  Fertility: "🌾🌱",
+  Fertility: "🌱",
   [`Type
 Rocky or Gaseous`]: "🪐",
   Pressure: "💨",
@@ -76,7 +76,7 @@ function getCxDistances() {
   return CX_DISTANCES
 }
 
-export default function PlanetSearch() {
+export function PlanetSearch() {
   const [startSystem, setStartSystem] = useState(worldData.planets[currentBase().planet].system)
   const [systems, setSystems] = useState(new Map<string, number>())
   const [matchingPlanets, setMatchingPlanets] = useState([] as SingleResult[])
@@ -187,7 +187,7 @@ export default function PlanetSearch() {
   const cxDistances = getCxDistances();
 
   return <div>
-    <SortableTable />
+    {/* <SortableTable /> */}
     <div style={{ border: "1 solid white" }}>
       System: <input value={startSystem} onChange={e => { setStartSystem(e.target.value) }} list="LIST_systems"></input>
       Jumps: <input type="number" value={maxJumps} onChange={e => {
@@ -214,7 +214,7 @@ export default function PlanetSearch() {
       </div>
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
-      <Icon label="🌾" hoverText="Fertility" size={32} />
+      <Icon label="🌱" hoverText="Fertility" size={32} />
       {additionalBuildingMaterials.map(mat => <div style={{ margin: 1 }}>
         <MaterialIcon key={mat} materialId={mat} size={32} isSelected={buildingMaterials.indexOf(mat) != -1} onClick={toggleBuildingMaterialFilter} />
       </div>)}
