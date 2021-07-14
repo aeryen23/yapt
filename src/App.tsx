@@ -6,8 +6,11 @@ import PlanetSearch from './features/planet-search/planet-search'
 import { RoiList } from './features/roi/roi'
 import { LongtermPlanner } from './features/longterm/longterm'
 import DataLists from './world-data/data-lists'
+import { PlayerBaseStatistics } from './features/bases/player-base-statistics'
 
 function Planner() {
+  if (true)
+    return <PlayerBaseStatistics />
   if (false)
     return <LongtermPlanner />
   if (true)

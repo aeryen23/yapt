@@ -186,7 +186,12 @@ export const apiSlice = createApi({
       },
       keepUnusedDataFor: 60 * 60 * 24 * 7, // 1 week for debugging TODO: reduce
     }),
+    basecount: builder.query<{ CompanyCode: string; BaseCount: number; }[], void>({
+      query() {
+        return `/planet/basecount`
+      }
+    }),
   }),
 })
 
-export const { useFetchPlanetQuery, useFetchPricesQuery } = apiSlice
+export const { useFetchPlanetQuery, useFetchPricesQuery, useBasecountQuery } = apiSlice
