@@ -33,11 +33,9 @@ export function PlayerBaseStatistics() {
   if (true) {
     const width = 800
     const barHeight = 30
-    const maxValue = Math.max(...processedData.map(a => a.companies.length))
-    const secondValue = Math.max(...processedData.filter(a => a.companies.length < maxValue).map(a => a.companies.length))
-    const advance = Math.trunc(0.75 * width / secondValue)
-    console.log("maxValue", processedData)
-    let barGroups = processedData.map((d, i) => <g transform={`translate(0, ${i * barHeight})`}>
+    const avgValue =  processedData.length>0 ? processedData.reduce((sum, a) => sum+a.companies.length, 0) / processedData.length : 1
+    const advance = Math.trunc(width / avgValue)
+    let barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
       <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />
     </g>)
     return (<svg width={width + 20} height="300" >

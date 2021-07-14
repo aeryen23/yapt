@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import { UseQuery } from '@reduxjs/toolkit/dist/query/react/buildHooks'
+import { createApi, fetchBaseQuery, QueryDefinition } from '@reduxjs/toolkit/query/react'
 
 export interface Planet {
   Resources: Resource[];
@@ -86,74 +87,74 @@ export interface ShortPlanet {
 }
 
 export interface PriceInfo {
-  Ticker:         string;
-  MMBuy:          number | null;
-  MMSell:         number | null;
-  "CI1-Average":  number;
-  "CI1-AskAmt":   number;
+  Ticker: string;
+  MMBuy: number | null;
+  MMSell: number | null;
+  "CI1-Average": number;
+  "CI1-AskAmt": number;
   "CI1-AskPrice": number;
   "CI1-AskAvail": number;
-  "CI1-BidAmt":   number;
+  "CI1-BidAmt": number;
   "CI1-BidPrice": number;
   "CI1-BidAvail": number;
-  "NC1-Average":  number;
-  "NC1-AskAmt":   number;
+  "NC1-Average": number;
+  "NC1-AskAmt": number;
   "NC1-AskPrice": number;
   "NC1-AskAvail": number;
-  "NC1-BidAmt":   number;
+  "NC1-BidAmt": number;
   "NC1-BidPrice": number;
   "NC1-BidAvail": number;
-  "IC1-Average":  number;
-  "IC1-AskAmt":   number;
+  "IC1-Average": number;
+  "IC1-AskAmt": number;
   "IC1-AskPrice": number;
   "IC1-AskAvail": number;
-  "IC1-BidAmt":   number;
+  "IC1-BidAmt": number;
   "IC1-BidPrice": number;
   "IC1-BidAvail": number;
 }
 
 export interface CXTickerInfo {
-  BuyingOrders:        CXOrder[];
-  SellingOrders:       CXOrder[];
-  MaterialBrokerId:    string;
-  MaterialName:        string;
-  MaterialTicker:      string;
-  MaterialId:          string;
-  ExchangeName:        string;
-  ExchangeCode:        string;
-  Currency:            string;
-  Previous:            number;
-  Price:               number;
-  PriceTimeEpochMs:    number;
-  High:                number;
-  AllTimeHigh:         number;
-  Low:                 number;
-  AllTimeLow:          number;
-  Ask:                 number;
-  AskCount:            number;
-  Bid:                 number;
-  BidCount:            number;
-  Supply:              number;
-  Demand:              number;
-  Traded:              number;
-  VolumeAmount:        number;
-  PriceAverage:        number;
-  NarrowPriceBandLow:  number;
+  BuyingOrders: CXOrder[];
+  SellingOrders: CXOrder[];
+  MaterialBrokerId: string;
+  MaterialName: string;
+  MaterialTicker: string;
+  MaterialId: string;
+  ExchangeName: string;
+  ExchangeCode: string;
+  Currency: string;
+  Previous: number;
+  Price: number;
+  PriceTimeEpochMs: number;
+  High: number;
+  AllTimeHigh: number;
+  Low: number;
+  AllTimeLow: number;
+  Ask: number;
+  AskCount: number;
+  Bid: number;
+  BidCount: number;
+  Supply: number;
+  Demand: number;
+  Traded: number;
+  VolumeAmount: number;
+  PriceAverage: number;
+  NarrowPriceBandLow: number;
   NarrowPriceBandHigh: number;
-  WidePriceBandLow:    number;
-  WidePriceBandHigh:   number;
-  MMBuy:               number;
-  MMSell:              number;
-  UserNameSubmitted:   string;
-  Timestamp:           string;
+  WidePriceBandLow: number;
+  WidePriceBandHigh: number;
+  MMBuy: number;
+  MMSell: number;
+  UserNameSubmitted: string;
+  Timestamp: string;
 }
 
 export interface CXOrder {
-  CompanyId:   string;
+  CompanyId: string;
   CompanyName: string;
   CompanyCode: string;
-  ItemCount:   number | null;
-  ItemCost:    number;
+  ItemCount: number | null;
+  ItemCost: number;
 }
 
 export const apiSlice = createApi({
@@ -189,9 +190,14 @@ export const apiSlice = createApi({
     basecount: builder.query<{ CompanyCode: string; BaseCount: number; }[], void>({
       query() {
         return `/planet/basecount`
-      }
+      },
+      keepUnusedDataFor: 10 * 60
     }),
   }),
 })
 
-export const { useFetchPlanetQuery, useFetchPricesQuery, useBasecountQuery } = apiSlice
+type MyUseQuery = UseQuery<QueryDefinition<any, any, any, any>>
+const setDefaultPollingInterval = <T extends MyUseQuery>(fn: T, interval = 30 * 60 * 1000): T => ((arg, options) => fn(arg, { pollingInterval: interval, ...options })) as T
+
+export const { useFetchPlanetQuery, useFetchPricesQuery } = apiSlice
+export const useBasecountQuery = setDefaultPollingInterval(apiSlice.useBasecountQuery)
