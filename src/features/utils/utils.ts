@@ -11,5 +11,7 @@ export function distinctStable<T>(array: T[]): T[] {
 }
 
 export function numberForUser(v: Number, precision = 2): string {
+  if (typeof v == "undefined")
+    return "undefined"
   return v.toFixed(precision)
 }

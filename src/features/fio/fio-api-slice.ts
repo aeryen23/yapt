@@ -87,8 +87,8 @@ export interface ShortPlanet {
 
 export interface PriceInfo {
   Ticker:         string;
-  MMBuy:          number;
-  MMSell:         null;
+  MMBuy:          number | null;
+  MMSell:         number | null;
   "CI1-Average":  number;
   "CI1-AskAmt":   number;
   "CI1-AskPrice": number;

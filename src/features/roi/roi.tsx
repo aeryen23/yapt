@@ -11,6 +11,8 @@ const TIER: Record<WorkforceLevel, number> = {
   Scientists: 5,
 }
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000
+
 type PriceSource = Exclude<keyof PriceInfo, "Ticker">
 
 function calcCommodityCosts(materials: Commodities, prices: Record<string, number>) {
@@ -34,24 +36,6 @@ function calcBuildingCosts(building: Building, planetId: string, prices: Record<
   return calcCommodityCosts(building.costs, prices) + calcCommodityCosts(calcBuildingEnvironmentMaterials(building, planetId), prices)
 }
 
-const housing: Record<string, Partial<Record<WorkforceLevel, Number>>> = {
-  HB1: { Pioneers: 100 },
-  HB2: { Settlers: 100 },
-  HB3: { Technicians: 100 },
-  HB4: { Engineers: 100 },
-  HB5: { Scientists: 100 },
-  HBB: { Pioneers: 75, Settlers: 75 },
-  HBC: { Settlers: 75, Technicians: 75 },
-  HBM: { Technicians: 75, Engineers: 75 },
-  HBL: { Engineers: 75, Scientists: 75 },
-}
-const workforceToHab: Record<WorkforceLevel, string> = {
-  Pioneers: "HB1",
-  Settlers: "HB2",
-  Technicians: "HB3",
-  Engineers: "HB4",
-  Scientists: "HB5",
-}
 function calcHabPerWorkforceCosts(planetId: string, prices: Record<string, number>) {
   const singleWorkforceCosts = Object.entries({
     HB1: "Pioneers",
@@ -74,57 +58,181 @@ function calcHabPerWorkforceCosts(planetId: string, prices: Record<string, numbe
         minimumCosts[pop] = popCost
     }
   }
-  // Object.entries(building.workforce).filter(([_, amount]) => amount > 0).map(([type, amount]) => )
-
   return minimumCosts
-  // return calcBuildingCosts(building, planetId, prices)
+}
+
+const CONSUMABLES_BY_WORKFORCE: Record<WorkforceLevel, Record<string, number>> = {
+  Pioneers: {
+    DW: 4,
+    RAT: 4,
+    OVE: 0.5,
+    PWO: 0.2,
+    COF: 0.5,
+  },
+  Settlers: {
+    DW: 5,
+    RAT: 6,
+    EXO: 0.5,
+    PT: 0.5,
+    REP: 0.2,
+    KOM: 1,
+  },
+  Technicians: {
+    DW: 7.5,
+    RAT: 7,
+    MED: 0.5,
+    HMS: 0.5,
+    SCN: 0.1,
+    SC: 0.1,
+    ALE: 1,
+  },
+  Engineers: {
+    DW: 10,
+    MED: 0.5,
+    FIM: 7,
+    HSS: 0.1,
+    PDA: 0.2,
+    VG: 0.2,
+    GIN: 0.1,
+  },
+  Scientists: {
+    DW: 10,
+    MED: 0.5,
+    MEA: 7,
+    LC: 0.2,
+    WS: 0.1,
+    NST: 0.1,
+    WIN: 1,
+  }
+}
+
+// TODO: calculate materials used + then calc price separate, so used materials can be shown for labor cost tooltip
+function calcLaborMaterials(building: Building, luxury: Record<string, boolean>) {
+  // TODO: hab-factor (-> not enough workforce)
+  // const totalWorkforce = Object.values(building.workforce).reduce((sum, amount) => sum + amount, 0)
+  return Object.entries(building.workforce).reduce((materials, [type, amount]) => {
+    for (const [material, per100] of Object.entries(CONSUMABLES_BY_WORKFORCE[type as WorkforceLevel])) {
+      if (worldData.materials[material].category == "consumables (luxury)" && !luxury[material])
+        continue
+      if (!materials[material])
+        materials[material] = 0
+      materials[material] += per100 / 100 * amount
+    }
+    return materials
+  }, {} as Record<string, number>)
+}
+function calcLaborCosts(building: Building, prices: Record<string, number>, luxury: Record<string, boolean>) {
+  return calcCommodityCosts(calcLaborMaterials(building, luxury), prices)
 }
 
 export function RoiList() {
-  const buildingIds = [
-    ...Object.keys(worldData.buildings).filter(id => worldData.buildings[id].type == BuildingType.RESOURCES),
-    ...Object.keys(worldData.buildings).filter(id => worldData.buildings[id].type == BuildingType.PRODUCTION).sort((a, b) => {
-      const bA = worldData.buildings[a]
-      const bB = worldData.buildings[b]
-      const diff = TIER[bA.workforceLevel] - TIER[bB.workforceLevel]
-      if (diff == 0)
-        return a.localeCompare(b)
-      return diff
-    })
-  ]
+  // TODO: fertility
+  // TODO: bonuses: cogc, experts, hq (level)
+  // TODO?: condition, not full workforce, not full consumables
+  const buildingIds = Object.keys(worldData.buildings).filter(id => worldData.buildings[id].type == BuildingType.PRODUCTION).sort((a, b) => {
+    const bA = worldData.buildings[a]
+    const bB = worldData.buildings[b]
+    const diff = TIER[bA.workforceLevel] - TIER[bB.workforceLevel]
+    if (diff == 0)
+      return a.localeCompare(b)
+    return diff
+  })
 
   const { data, error, isLoading } = useFetchPricesQuery()
 
   const [planet, setPlanet] = useState("OT-580b")
+  const [usableWorkforce, setUsableWorkforce] = useState({
+    Pioneers: true,
+    Settlers: true,
+    Technicians: true,
+    Engineers: true,
+    Scientists: true,
+  })
+  const [usableConsumables, setUsableConsumables] = useState({
+    PWO: true,
+    COF: true,
+  })
+
   const [priceSource, setPriceSource] = useState<PriceSource>("NC1-Average") // TODO: use array as prio order instead
   const prices = useMemo(() => isLoading ? {} : (data as PriceInfo[]).reduce((acc, current) => ({ ...acc, [current.Ticker]: current[priceSource] ?? 0 }), {} as Record<string, number>), [data, priceSource])
-  const habCosts = useMemo(() => calcHabPerWorkforceCosts(planet, prices), [prices, planet])
+  const habPerWorkforceCosts = useMemo(() => calcHabPerWorkforceCosts(planet, prices), [prices, planet])
+  const relevantBuildings = [...worldData.buildingCategories[BuildingType.RESOURCES], ...worldData.buildingCategories[BuildingType.PRODUCTION]]
   const buildingCosts = useMemo(() =>
-    worldData.buildingCategories[BuildingType.PRODUCTION].reduce((acc, bId) => ({ ...acc, [bId]: calcBuildingCosts(worldData.buildings[bId], planet, prices) }), {} as Record<string, number>),
+    relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcBuildingCosts(worldData.buildings[bId], planet, prices) }), {} as Record<string, number>),
     [prices, planet])
+  const habCosts = useMemo(() =>
+    relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: Object.entries(worldData.buildings[bId].workforce).reduce((sum, [type, amount]) => sum + habPerWorkforceCosts[type] * amount, 0) }), {} as Record<string, number>),
+    [prices, planet])
+  const consumableCosts = useMemo(() =>
+    relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcLaborCosts(worldData.buildings[bId], prices, usableConsumables) }), {} as Record<string, number>),
+    [prices, usableConsumables])
+
 
   if (isLoading)
     return <div>Loading</div>
   if (error)
     return <div>Error: ${error}</div>
 
-  return (<div style={{ display: "grid", gridTemplateColumns: "max-content auto auto max-content auto" }}>
-    <div>BUI</div>
-    <div>BUI-Cost</div>
-    <div>Recipe</div>
-    <div>Time</div>
-    <div>ROI</div>
-    {buildingIds.map(buildingCode => worldData.buildings[buildingCode].recipes.map(recipe => {
-      const key = buildingCode + "|" + Object.entries(recipe.inputs).map(([mat, amount]) => amount + mat).join(",") + "|" + Object.entries(recipe.outputs).map(([mat, amount]) => amount + mat).join(",")
-      return [
-        <div key={key + "A"}>{buildingCode}</div>,
-        <div key={key + "A1"}>{numberForUser(buildingCosts[buildingCode], 0)}</div>,
-        <div key={key + "B"}>{Object.entries(recipe.outputs).map(([mat]) => mat).join(" ") + "-"}</div>,
-        <div key={key + "C"}>{showDuration(recipe.durationMs)}</div>,
-        <div key={key + "D"}>{Object.keys(recipe.outputs)[0] ? numberForUser(prices[Object.keys(recipe.outputs)[0]]) : 0}</div>,
-      ]
-    })).flat()}
-  </div >)
+  return (<>
+    <div style={{ display: "flex", flexDirection: "row" }}>
+      <div style={{ margin: "0 2px" }}>Planet: <PlanetInput value={planet} onChange={setPlanet} /></div>
+      <div style={{ margin: "0 2px" }}>Workforce: {Object.keys(usableWorkforce).map(wf => <label><input type="checkbox" checked={usableWorkforce[wf as keyof typeof usableWorkforce]} onChange={e => setUsableWorkforce({ ...usableWorkforce, [wf]: e.target.checked })}></input>{wf}</label>).flat()}</div>
+      <div style={{ margin: "0 2px" }}>Consumables: {Object.keys(usableConsumables).map(cons => <label><input type="checkbox" checked={usableConsumables[cons as keyof typeof usableConsumables]} onChange={e => setUsableConsumables({ ...usableConsumables, [cons]: e.target.checked })}></input>{cons}</label>).flat()}</div>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "max-content auto max-content auto auto auto auto auto" }}>
+      <div>BUI</div>
+      <div>BUI-Cost</div>
+      <div>Recipe</div>
+      <div>Labor/d</div>
+      <div>Input/d</div>
+      <div>Output/d</div>
+      <div>Profit/d</div>
+      <div>ROI</div>
+      {worldData.planets[planet].resources
+        .sort((a, b) => a.type.localeCompare(b.type))
+        .map(({ material, perDay, type }) => {
+          const buildingCode = { GASEOUS: "COL", LIQUID: "RIG", MINERAL: "EXT" }[type]
+          const key = buildingCode + "|" + Math.round(perDay) + material
+          const buiCost = buildingCosts[buildingCode]
+          const habCost = habCosts[buildingCode]
+          const laborCost = consumableCosts[buildingCode]
+          const outputCost = perDay * prices[material]
+          const profit = outputCost - laborCost
+          return [
+            <div key={key + "A"} style={{ textAlign: "left" }}>{buildingCode}</div>,
+            <div key={key + "A1"} title={"Building: " + numberForUser(buiCost, 0) + "\nHab: " + numberForUser(habCost, 0)}>{numberForUser(buiCost + habCost, 0)}</div>,
+            <div key={key + "B"} title={material + ": " + numberForUser(prices[material])}>{numberForUser(perDay, 1) + material}</div>,
+            <div key={key + "C1"}>{numberForUser(laborCost, 0)}</div>,
+            <div key={key + "C"}>0</div>,
+            <div key={key + "D"}>{numberForUser(outputCost, 0)}</div>,
+            <div key={key + "E"}>{numberForUser(profit, 0)}</div>,
+            <div key={key + "F"} style={{ textAlign: "right" }}>{profit > 0 ? numberForUser((buiCost + habCost) / profit, 2) : "∞"}</div>,
+          ]
+        }).flat()}
+      {buildingIds
+        .filter(id => Object.entries(worldData.buildings[id].workforce).filter(([type, amount]) => !usableWorkforce[type as keyof typeof usableWorkforce] && amount > 0).length == 0)
+        .map(buildingCode => worldData.buildings[buildingCode].recipes.map(recipe => {
+          const key = buildingCode + "|" + Object.entries(recipe.inputs).map(([mat, amount]) => amount + mat).join(",") + "|" + Object.entries(recipe.outputs).map(([mat, amount]) => amount + mat).join(",")
+          const buiCost = buildingCosts[buildingCode]
+          const habCost = habCosts[buildingCode]
+          const timesPerDay = DAY_IN_MS / recipe.durationMs
+          const laborCost = consumableCosts[buildingCode]
+          const inputCost = Object.entries(recipe.inputs).reduce((sum, [mat, amount]) => sum + amount * prices[mat], 0) * timesPerDay
+          const outputCost = Object.entries(recipe.outputs).reduce((sum, [mat, amount]) => sum + amount * prices[mat], 0) * timesPerDay
+          const profit = outputCost - inputCost - laborCost
+          return [
+            <div key={key + "A"} style={{ textAlign: "left" }}>{buildingCode}</div>,
+            <div key={key + "A1"} title={"Building: " + numberForUser(buiCost, 0) + "\nHab: " + numberForUser(habCost, 0)}>{numberForUser(buiCost + habCost, 0)}</div>,
+            <div key={key + "B"} title={[...Object.keys(recipe.outputs), ...Object.keys(recipe.inputs)].map(mat => mat + ": " + numberForUser(prices[mat])).join("\n")}>{Object.entries(recipe.outputs).map(([mat, amount]) => amount + mat).join(" ") + " := " + Object.keys(recipe.inputs).join("+")}</div>,
+            <div key={key + "C1"}>{numberForUser(laborCost, 0)}</div>,
+            <div key={key + "C"}>{numberForUser(inputCost, 0)}</div>,
+            <div key={key + "D"}>{numberForUser(outputCost, 0)}</div>,
+            <div key={key + "E"}>{numberForUser(profit, 0)}</div>,
+            <div key={key + "F"} style={{ textAlign: "right" }}>{profit > 0 ? numberForUser((buiCost + habCost) / profit, 2) : "∞"}</div>,
+          ]
+        })).flat()}
+    </div >
+  </>)
 }
 
 function showDuration(durationMs: number) {
@@ -137,4 +245,13 @@ function showDuration(durationMs: number) {
   if (remainingMinutes)
     result += " " + remainingMinutes + " m"
   return result.trim();
+}
+
+function PlanetInput({ value, onChange }: { value: string, onChange: (planet: string) => void }) {
+  const [currentValue, setCurrentValue] = useState(value)
+  return <input value={currentValue} onChange={e => {
+    setCurrentValue(e.target.value)
+    if (worldData.planets[e.target.value])
+      onChange(e.target.value)
+  }} list="LIST_planets"></input>
 }
