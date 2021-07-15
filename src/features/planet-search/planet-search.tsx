@@ -215,7 +215,7 @@ export function PlanetSearch() {
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
       <Icon label="🌱" hoverText="Fertility" size={32} />
-      {additionalBuildingMaterials.map(mat => <div style={{ margin: 1 }}>
+      {additionalBuildingMaterials.map(mat => <div key={mat} style={{ margin: 1 }}>
         <MaterialIcon key={mat} materialId={mat} size={32} isSelected={buildingMaterials.indexOf(mat) != -1} onClick={toggleBuildingMaterialFilter} />
       </div>)}
     </div>
@@ -223,10 +223,10 @@ export function PlanetSearch() {
       <table className={styles.table}>
         <thead>
           <tr>
-            {Object.entries(HEADERS).map(([title, text], index) => <th title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
-            {materialFilter.map((filter, index) => <th title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
+            {Object.entries(HEADERS).map(([title, text], index) => <th key={text} title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
+            {materialFilter.map((filter, index) => <th key={filter} title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
             <th colSpan={5}></th>
-            {Object.keys(cxDistances).map((cx, index) => <th onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
+            {Object.keys(cxDistances).map((cx, index) => <th key={cx} onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
           </tr>
         </thead>
         <tbody>
@@ -254,16 +254,16 @@ export function PlanetSearch() {
                 return <td className={used ? styleForMaterial(used) : ""}>{used}</td>
               }).flat()}
               {
-                materialFilter.map(filter => <td className={styleForMaterial(filter)}>
+                materialFilter.map(filter => <td key={filter} className={styleForMaterial(filter)}>
                   {planet.resources.filter(r => r.material == filter).map(r => showResource(r)).flat() || null}
                 </td>)
               }
               {
                 planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r => <>
-                  <td className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}</td>
+                  <td key={r.material} className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}</td>
                 </>).concat(new Array(5).fill(<td />)).slice(0, 5).flat()
               }
-              {Object.values(cxDistances).map((distPerSystem: Map<string, number>) => <td>{distPerSystem.get(worldData.planets[r.planet].system)}</td>)}
+              {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(worldData.planets[r.planet].system)}</td>)}
             </tr>)
           })}
         </tbody>
