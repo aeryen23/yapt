@@ -41,6 +41,10 @@ export interface FioRecipe {
   RecipeName: string;
 }
 
+export interface FioShortPlanet {
+  PlanetNaturalId: string;
+  PlanetName: string;
+}
 export type ResourceType = "GASEOUS" | "LIQUID" | "MINERAL"
 export interface FioResource {
   MaterialId:   string;

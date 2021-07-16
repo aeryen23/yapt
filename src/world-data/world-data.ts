@@ -1,10 +1,10 @@
 import {
   FioBuilding, FioCommodityAmount, FactionCode,
   FioMaterial, FioPlanet, ResourceType, BuildingCategory,
-  FioSystemStar, FioWorldSector, StarType
+  FioSystemStar, FioWorldSector, StarType, FioShortPlanet
 } from "../features/fio/fio-types";
 
-type Map<T> = Record<string, T>
+export type Map<T> = Record<string, T>
 
 export const worldData = {
   materials: {} as Map<Material>,
@@ -20,16 +20,33 @@ export const worldData = {
   systems: {} as Map<System>,
   planetMaxResources: {} as Record<string, number>,
 }
+
+/// ------
+
 function add(container: Record<string, string[]>, key: string, value: string) {
   if (!container[key])
     container[key] = []
   container[key].push(value)
+}
+type ShortPlanet = {
+  id: string
+  name: string
 }
 
 // TODO: split loading, type defs etc
 export async function loadWorldData() {
   await openFetchDb();
   await openDb();
+
+  {
+    const shortPlanetsFio = await loadData<FioShortPlanet[]>("/planet/allplanets")
+    const shortPlanets: ShortPlanet[] = shortPlanetsFio.map(planet => ({
+      id: planet.PlanetNaturalId,
+      name: planet.PlanetName,
+    }))
+    await putAll("planets2", shortPlanets)
+  }
+
   ([worldData.materials, worldData.buildings, worldData.planets, worldData.systems] = await Promise.all([
     getAll<Material>("materials"),
     getAll<Building>("buildings"),
@@ -182,9 +199,12 @@ const ID_MAP_STORE = "idMaps"
 async function openDb() {
   let needsInitializing = false
   db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open("world-data", 1)
+    const request = indexedDB.open("world-data", 2)
     request.onupgradeneeded = (e) => {
       const db = request.result;
+      if (e.oldVersion < 2) {
+        db.createObjectStore("planets2", { keyPath: "id" }) // only use one store and have incomplete objects in there
+      }
       if (e.oldVersion < 1) {
         db.createObjectStore("materials", { keyPath: "id" })
         db.createObjectStore("buildings", { keyPath: "id" })
@@ -417,8 +437,8 @@ async function openFetchDb() {
     request.onsuccess = () => resolve(request.result)
     request.onerror = reject
   })
-  await loadData<FioMaterial[]>("/material/allmaterials")
-  await loadData<FioBuilding[]>("/building/allbuildings")
+  // await loadData<FioMaterial[]>("/material/allmaterials")
+  // await loadData<FioBuilding[]>("/building/allbuildings")
 }
 
 type FetchResult<T> = {
@@ -448,3 +468,4 @@ async function fetchData<T = any>(url: string): Promise<T> {
   })
   return await response.json()
 }
+

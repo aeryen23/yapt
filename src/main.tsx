@@ -5,6 +5,9 @@ import App from './App'
 import { Provider } from 'react-redux'
 import { store } from './app/store'
 import { loadWorldData } from './world-data/world-data'
+import { initDb } from './features/fio/fio-get'
+
+initDb()
 
 loadWorldData().then(() => {
   ReactDOM.render(

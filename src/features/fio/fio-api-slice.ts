@@ -1,5 +1,6 @@
 import { UseQuery } from '@reduxjs/toolkit/dist/query/react/buildHooks'
 import { createApi, fetchBaseQuery, QueryDefinition } from '@reduxjs/toolkit/query/react'
+import { FioShortPlanet } from './fio-types'
 
 export interface Planet {
   Resources: Resource[];
@@ -81,11 +82,6 @@ export interface Resource {
   Factor: number;
 }
 
-export interface ShortPlanet {
-  PlanetNaturalId: string;
-  PlanetName: string;
-}
-
 export interface PriceInfo {
   Ticker: string;
   MMBuy: number | null;
@@ -162,7 +158,7 @@ export const apiSlice = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: "https://rest.fnar.net" }),
   endpoints: (builder) => ({
     // TODO: instead get CX info -> prices
-    fetchPlanets: builder.query<ShortPlanet[], void>({
+    fetchPlanets: builder.query<FioShortPlanet[], void>({
       query() {
         return `/planet/allplanets`
       }
