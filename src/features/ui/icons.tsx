@@ -1,9 +1,10 @@
 import React from "react"
 import styles from "./icons.module.css"
-import { worldData } from "../../world-data/world-data"
+import { selectMaterials } from "../../world-data/world-data-slice"
 
 export function styleForMaterial(materialId: string) {
-  const category = worldData.materials[materialId].category.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
+  const materials = selectMaterials() // TODO only need the category of a single material
+  const category = materials[materialId].category.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
   return styles[category] ?? styles.defaultColor
 }
 export function MaterialIcon({ materialId, amount, size = 48, fontFactor = 0.33, isSelected = false, onClick }: { materialId: string, amount?: number, size?: number, fontFactor?: number, isSelected?: boolean, onClick?: (material: string, amount?: number) => void }) {

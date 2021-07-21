@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react"
-import { PlanetResource, worldData } from "../../world-data/world-data"
-import { currentBase } from "../bases/bases-slice"
+import React, { useEffect, useMemo, useState } from "react"
+import { getPlanetMaterials, PlanetResource, System } from "../../world-data/world-data"
+import { IdMap, selectMaterials, selectMaterialsByInternalId, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
-import { numberForUser } from "../utils/utils"
+import { isEmpty, numberForUser } from "../utils/utils"
 import styles from "./planet-search.module.css"
 
 /*
@@ -51,34 +51,14 @@ const infrastructure = "🚧🏪🏦🏬🏛️🏗️";
 // Shipyard
 const test = "📉📈💰"
 
-let allResources: { category: string, materials: string[] }[] | undefined = undefined
-function getAllResources() {
-  if (!allResources) {
-    const mats = [... new Set(Object.values(worldData.planets).map(p => p.resources.map(r => r.material)).flat())]
-    const cat2mats = mats.reduce((acc, mat) => {
-      const cat = worldData.materials[mat].category
-      if (!acc[cat])
-        acc[cat] = []
-      acc[cat].push(mat)
-      return acc
-    }, {} as Record<string, string[]>)
-    allResources = Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }));
-  }
-  return allResources
-}
-
 const additionalBuildingMaterials = ["MCG", "AEF", "SEA", "HSE", "INS", "TSH", "MGC", "BL"]
 
-let CX_DISTANCES: Record<string, Map<string, number>> | undefined
-function getCxDistances() {
-  if (!CX_DISTANCES)
-    CX_DISTANCES = Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system) }), {})
-  return CX_DISTANCES
-}
-
 export function PlanetSearch() {
-  const [startSystem, setStartSystem] = useState(worldData.planets[currentBase().planet].system)
-  const [systems, setSystems] = useState(new Map<string, number>())
+  const systems = selectSystems()
+  const { planets, planetsPerSystem } = selectPlanetsPerSystem()
+
+  const [startSystem, setStartSystem] = useState("OT-580")
+  const [systemDistances, setSystemDistances] = useState(new Map<string, number>())
   const [matchingPlanets, setMatchingPlanets] = useState([] as SingleResult[])
   const [materialFilter, setMaterialFilter] = useState([] as string[])
   const [materialFilterAnd, setMaterialFilterAnd] = useState(false)
@@ -86,25 +66,31 @@ export function PlanetSearch() {
   const [buildingMaterials, setBuildingMaterials] = useState(["MCG", "AEF", "SEA"]) // TODO: save this state permanently + start with all?!
   const [sortColumn, setSortColumn] = useState(0)
 
+
+  const cxDistances = useMemo(() =>
+    Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
+    , [systems])
+
+
   useEffect(() => {
-    if (!worldData.systems[startSystem])
+    if (!systems[startSystem])
       return
     console.time("Evaluate jumps")
-    setSystems(calculateSystemDistances(startSystem))
+    setSystemDistances(calculateSystemDistances(startSystem, systems))
     console.timeEnd("Evaluate jumps")
-  }, [startSystem])
+  }, [startSystem, systems])
+
   useEffect(() => {
     console.time("Evaluate planets")
 
     // TODO: split systems vs found planets, so planets can be more easily be filtered/sorted without needing to reiterate the jump counts
     const newResult: SingleResult[] = []
-    for (const [system, jumps] of systems) {
+    for (const [system, jumps] of systemDistances) {
       if (maxJumps && jumps > maxJumps)
         continue
-      for (const planet of worldData.systems[system].planets) {
-        const cmCosts = worldData.planets[planet].cmCosts
+      for (const planetId of planetsPerSystem[system]) {
         let hasAllBuildingCosts = true
-        for (const mat of Object.keys(cmCosts)) {
+        for (const mat of Object.keys(getPlanetMaterials(planets[planetId]))) {
           if (additionalBuildingMaterials.indexOf(mat) == -1)
             continue // only check for the additional costs
           if (buildingMaterials.indexOf(mat) == -1) {
@@ -114,7 +100,7 @@ export function PlanetSearch() {
         }
         if (!hasAllBuildingCosts)
           continue;
-        newResult.push({ planet, jumps })
+        newResult.push({ planet: planetId, jumps })
       }
     }
     console.timeEnd("Evaluate planets")
@@ -125,17 +111,17 @@ export function PlanetSearch() {
         if (sortColumn == 0)
           return a.jumps - b.jumps
         else if (sortColumn == 2)
-          return worldData.planets[b.planet].surfaceData.fertility - worldData.planets[a.planet].surfaceData.fertility
+          return planets[b.planet].environment.fertility - planets[a.planet].environment.fertility
         else if (sortColumn >= NUM_HEADERS && sortColumn < NUM_HEADERS + materialFilter.length) {
           const filter = materialFilter[sortColumn - NUM_HEADERS]
           function getResourcePerDay(planet: string) {
-            const res = worldData.planets[planet].resources.filter(r => r.material == filter)[0]
+            const res = planets[planet].resources.filter(r => r.material == filter)[0]
             return res ? res.perDay : 0
           }
           return getResourcePerDay(b.planet) - getResourcePerDay(a.planet)
         } else {
-          const cxData = Object.values(getCxDistances())[sortColumn - (NUM_HEADERS + materialFilter.length + 5)]!
-          function getJumps(planet: string) { return cxData.get(worldData.planets[planet].system)!; }
+          const cxData = Object.values(cxDistances)[sortColumn - (NUM_HEADERS + materialFilter.length + 5)]!
+          function getJumps(planet: string) { return cxData.get(planets[planet].system)!; }
           return getJumps(a.planet) - getJumps(b.planet)
         }
         return 0
@@ -146,7 +132,7 @@ export function PlanetSearch() {
     })
 
     setMatchingPlanets(newResult)
-  }, [systems, maxJumps, buildingMaterials, sortColumn])
+  }, [systems, planetsPerSystem, systemDistances, maxJumps, buildingMaterials, sortColumn, cxDistances])
 
   // Settings:
   // - checkboxes for building materials
@@ -180,11 +166,32 @@ export function PlanetSearch() {
   }
 
   function showResource(r: PlanetResource) {
-    const percentage = r.perDay / worldData.planetMaxResources[r.material]
+    const percentage = r.perDay / 50//worldData.planetMaxResources[r.material]
     return <div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>{numberForUser(r.perDay) + materialTypeIcon[r.type]}<div style={{ width: "0.5em", height: percentage + "em", backgroundColor: `rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0)` }} /></div>
   }
 
-  const cxDistances = getCxDistances();
+  const materials = selectMaterials()
+  const materialByInternalId = selectMaterialsByInternalId()
+
+  const allResources = useMemo(() => {
+    const mats = [... new Set(Object.values(planets).map(p => p.resources.map(r => materialByInternalId[r.material])).flat())]
+    const cat2mats = mats.reduce((acc, mat) => {
+      if (!materials[mat]) {
+        console.error("missing mat", mat, materials)
+        return acc
+      }
+      const cat = materials[mat].category
+      if (!acc[cat])
+        acc[cat] = []
+      acc[cat].push(mat)
+      return acc
+    }, {} as Record<string, string[]>)
+    return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }));
+  }, [materials, materialByInternalId])
+
+
+  if (isEmpty(planets) || isEmpty(systems))
+    return <Loading />
 
   return <div>
     {/* <SortableTable /> */}
@@ -202,7 +209,7 @@ export function PlanetSearch() {
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
       {
-        getAllResources().map(o => o.materials.map(mat => <div key={mat} style={{ margin: 1 }}>
+        allResources.map(o => o.materials.map(mat => <div key={mat} style={{ margin: 1 }}>
           <MaterialIcon key={mat} materialId={mat} size={32} isSelected={materialFilter.indexOf(mat) != -1} onClick={toggleMaterialFilter} />
         </div>)).flat()
       }
@@ -233,7 +240,7 @@ export function PlanetSearch() {
           {matchingPlanets.filter(r => {
             if (materialFilter.length == 0)
               return true
-            const materials = worldData.planets[r.planet].resources.map(r => r.material)
+            const materials = planets[r.planet].resources.map(r => r.material)
             for (const filter of materialFilter) {
               if (materials.indexOf(filter) != -1) {
                 if (!materialFilterAnd)
@@ -244,13 +251,14 @@ export function PlanetSearch() {
             }
             return materialFilterAnd
           }).map(r => {
-            const planet = worldData.planets[r.planet]
+            const planet = planets[r.planet]
+            const planetMaterials = Object.keys(getPlanetMaterials(planet))
             return (<tr key={r.planet}>
               <td>{r.jumps}</td>
-              <td title={worldData.planets[r.planet].name}>{r.planet}</td>
-              <td>{planet.surfaceData.fertility == -1 ? "-" : numberForUser(30 * planet.surfaceData.fertility) + "%"}</td>
+              <td title={planets[r.planet].name}>{r.planet}</td>
+              <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
               {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
-                const used = mats.filter(m => planet.cmCosts[m])[0]
+                const used = mats.filter(m => planetMaterials.indexOf(m) != -1)[0]
                 return <td className={used ? styleForMaterial(used) : ""}>{used}</td>
               }).flat()}
               {
@@ -263,7 +271,7 @@ export function PlanetSearch() {
                   <td key={r.material} className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}</td>
                 </>).concat(new Array(5).fill(<td />)).slice(0, 5).flat()
               }
-              {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(worldData.planets[r.planet].system)}</td>)}
+              {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(planets[r.planet].system)}</td>)}
             </tr>)
           })}
         </tbody>
@@ -284,11 +292,13 @@ const selectedColors = [
 ]
 selectedColors[-1] = "white"
 
-function calculateSystemDistances(startSystem: string) {
+function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
   console.log("calculateSystemDistances", startSystem)
   // TODO: it can take 15ms to evaluate all planets :/
   const evaluated = new Map<string, number>()
   evaluated.set(startSystem, 0)
+  if (isEmpty(systems))
+    return evaluated
   let next = []
   let later = [startSystem]
   while (later.length) {
@@ -297,7 +307,11 @@ function calculateSystemDistances(startSystem: string) {
     while (next.length) {
       const checkId: string = next.pop()!
       const jumps = evaluated.get(checkId)! + 1
-      const check = worldData.systems[checkId]
+      const check = systems[checkId]
+      if (!check){
+        console.error("system not found", checkId, systems)
+        continue;
+      }
       for (const other of check.connections) {
         if (evaluated.has(other))
           continue;
@@ -309,47 +323,51 @@ function calculateSystemDistances(startSystem: string) {
   return evaluated
 }
 
-function SortableTable() {
-  const headerNames = ["Jumps", "Name", "Rate"];
-  const entries = [{ key: "1", jumps: 20, name: "A", rate: "10.2" }, { key: "2", jumps: 3, name: "C", rate: "2.5" }, { key: "3", jumps: 10, name: "B", rate: "2.5" }];
-  const headerKeys = ["jumps", "name", "rate"];
-  const sortFn = {
-    jumps: (a: number, b: number) => a - b
-  }
+// function SortableTable() {
+//   const headerNames = ["Jumps", "Name", "Rate"];
+//   const entries = [{ key: "1", jumps: 20, name: "A", rate: "10.2" }, { key: "2", jumps: 3, name: "C", rate: "2.5" }, { key: "3", jumps: 10, name: "B", rate: "2.5" }];
+//   const headerKeys = ["jumps", "name", "rate"];
+//   const sortFn = {
+//     jumps: (a: number, b: number) => a - b
+//   }
 
-  return <SortableTableInternal headers={["jumps", "name", "rate"]} entries={entries} />
-}
+//   return <SortableTableInternal headers={["jumps", "name", "rate"]} entries={entries} />
+// }
 
 
-/**
- * - sort by number, but display e.g. only 2 decimal places
- * - sort inc/dec(/toggle?)
- * - string sort
- * - no sort on column
- */
-type TableSortFunctions<T, K extends keyof T> = Partial<Record<K, (a: T[K], b: T[K]) => number>>
+// /**
+//  * - sort by number, but display e.g. only 2 decimal places
+//  * - sort inc/dec(/toggle?)
+//  * - string sort
+//  * - no sort on column
+//  */
+// type TableSortFunctions<T, K extends keyof T> = Partial<Record<K, (a: T[K], b: T[K]) => number>>
 
-function SortableTableInternal<T extends Record<string, string | number> & { key: string }, K extends keyof T>({ headers, entries, sortFn = {} }: { headers: K[], entries: T[], sortFn?: Partial<Record<K, (a: T[K], b: T[K]) => number>> }) {
-  const sortedEntries = [...entries]
-  const [sortedField, setSortedField] = useState(headers[0])
+// function SortableTableInternal<T extends Record<string, string | number> & { key: string }, K extends keyof T>({ headers, entries, sortFn = {} }: { headers: K[], entries: T[], sortFn?: Partial<Record<K, (a: T[K], b: T[K]) => number>> }) {
+//   const sortedEntries = [...entries]
+//   const [sortedField, setSortedField] = useState(headers[0])
 
-  // const sf = sortFn[headers[0]];
-  // if (sf)
-  //   sortedEntries.sort((a, b) => sf(a[headers[0]], b[headers[0]]))
+//   // const sf = sortFn[headers[0]];
+//   // if (sf)
+//   //   sortedEntries.sort((a, b) => sf(a[headers[0]], b[headers[0]]))
 
-  // needs some values to inc, some to dec
-  sortedEntries.sort((a, b) => a[sortedField] - b[sortedField]) // -> does not work with strings -> NaN -> does not sort
+//   // needs some values to inc, some to dec
+//   sortedEntries.sort((a, b) => a[sortedField] - b[sortedField]) // -> does not work with strings -> NaN -> does not sort
 
-  return (<table>
-    <thead>
-      <tr>
-        {headers.map(header => sortFn[header] ? <td onClick={() => setSortedField(header)}>{header}</td> : <td>{header}</td>)}
-      </tr>
-    </thead>
-    <tbody>
-      {sortedEntries.map(e => <tr key={e.key}>{headers.map(key => <td>{e[key]}</td>)}</tr>)}
-    </tbody>
-  </table>)
-}
+//   return (<table>
+//     <thead>
+//       <tr>
+//         {headers.map(header => sortFn[header] ? <td onClick={() => setSortedField(header)}>{header}</td> : <td>{header}</td>)}
+//       </tr>
+//     </thead>
+//     <tbody>
+//       {sortedEntries.map(e => <tr key={e.key}>{headers.map(key => <td>{e[key]}</td>)}</tr>)}
+//     </tbody>
+//   </table>)
+// }
 
 // TODO: Material listings with prices / production chain planning
+
+function Loading() {
+  return <div>Loading Fio Data</div>
+}

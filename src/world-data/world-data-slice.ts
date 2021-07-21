@@ -1,27 +1,38 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { useMemo } from "react";
 import { useAppSelector } from "../app/hooks";
-import { Map, Material, Building, Planet, System, BuildingType, Sector } from "./world-data";
+import { Material, Building, Planet, System, BuildingType, Sector } from "./world-data";
+
+export type IdMap<T> = Record<string, T>
 
 const initialState = {
-  materials: {} as Map<Material>,
-  materialCategories: [] as string[],
-  buildings: {} as Map<Building>,
-  buildingsProduction: {} as Record<keyof Building["workforce"], string[]>,
-  buildingCategories: {} as Record<BuildingType, string[]>,
   material: {
-    usedIn: {} as Record<string, string[]>,
-    producedIn: {} as Record<string, string[]>,
+    data: {} as IdMap<Material>,
+    byInternalId: {} as IdMap<string>,
+    byCategory: {} as IdMap<string[]>,
   },
-  planets: {} as Map<Planet>,
-  systems: {} as Map<System>,
-  planetMaxResources: {} as Record<string, number>,
-  sectors: [] as Sector[]
-}
+  building: {
+    data: {} as IdMap<Building>,
+    byType: Object.keys(BuildingType).reduce((acc, val) => ({ ...acc, [val]: [] }), {} as Record<BuildingType, string[]>)
+    // productionByWorkforce?
+  },
+  planet: {
+    data: {} as IdMap<Planet>,
+    byInternalId: {} as IdMap<string>,
+    bySystem: {} as IdMap<string[]>,
+  },
+  system: {
+    data: {} as IdMap<System>,
+    byInternalId: {} as IdMap<string>,
+    byName: {} as IdMap<string>,
+  },
 
-function add(container: Record<string, string[]>, key: string, value: string) {
-  if (!container[key])
-    container[key] = []
-  container[key].push(value)
+  // material: {
+  //   usedIn: {} as Record<string, string[]>,
+  //   producedIn: {} as Record<string, string[]>,
+  // },
+  // planetMaxResources: {} as Record<string, number>,
+  // sectors: [] as Sector[]
 }
 
 const WorldDataSlice = createSlice({
@@ -29,71 +40,107 @@ const WorldDataSlice = createSlice({
   initialState,
   reducers: {
     setMaterials(state, action: PayloadAction<Material[]>) {
-      for (const o of action.payload)
-        state.materials[o.id] = o
-      state.materialCategories = [...new Set(Object.values(state.materials).map(mat => mat.category))].sort()
+      const obj = state.material
+      for (const o of action.payload) {
+        obj.data[o.id] = o
+        obj.byInternalId[o.internalId] = o.id
+        add(obj.byCategory, o.category, o.id)
+      }
     },
     setBuildings(state, action: PayloadAction<Building[]>) {
-      for (const o of action.payload)
-        state.buildings[o.id] = o
-
-      let allBuildingIds = Object.keys(state.buildings)
-      for (const type of Object.keys(BuildingType) as BuildingType[])
-        state.buildingCategories[type] = allBuildingIds.filter(id => state.buildings[id].type == type)
-
-      let productionBuildingIds = state.buildingCategories[BuildingType.PRODUCTION]
-      for (const wf of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as (keyof Building["workforce"])[]) {
-        state.buildingsProduction[wf] = productionBuildingIds.filter(id => state.buildings[id].workforce[wf] > 0)
-        productionBuildingIds = productionBuildingIds.filter(id => state.buildings[id].workforce[wf] == 0)
+      const obj = state.building
+      for (const o of action.payload) {
+        obj.data[o.id] = o
+        add(obj.byType, o.type, o.id)
       }
 
-      for (const bui of state.buildingCategories[BuildingType.PRODUCTION]) {
-        const building = state.buildings[bui]
-        for (const recipe of building.recipes) {
-          for (const output of Object.keys(recipe.outputs)) {
-            add(state.material.producedIn, output, bui)
-            for (const input of Object.keys(recipe.inputs))
-              add(state.material.usedIn, input, output)
-          }
-        }
-      }
+      // for (const o of action.payload)
+      //   state.buildings[o.id] = o
+
+      // let allBuildingIds = Object.keys(state.buildings)
+      // for (const type of Object.keys(BuildingType) as BuildingType[])
+      //   state.buildingCategories[type] = allBuildingIds.filter(id => state.buildings[id].type == type)
+
+      // let productionBuildingIds = state.buildingCategories[BuildingType.PRODUCTION]
+      // for (const wf of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as (keyof Building["workforce"])[]) {
+      //   state.buildingsProduction[wf] = productionBuildingIds.filter(id => state.buildings[id].workforce[wf] > 0)
+      //   productionBuildingIds = productionBuildingIds.filter(id => state.buildings[id].workforce[wf] == 0)
+      // }
+
+      // for (const bui of state.buildingCategories[BuildingType.PRODUCTION]) {
+      //   const building = state.buildings[bui]
+      //   for (const recipe of building.recipes) {
+      //     for (const output of Object.keys(recipe.outputs)) {
+      //       add(state.material.producedIn, output, bui)
+      //       for (const input of Object.keys(recipe.inputs))
+      //         add(state.material.usedIn, input, output)
+      //     }
+      //   }
+      // }
 
     },
     setPlanets(state, action: PayloadAction<Planet[]>) {
-      for (const o of action.payload)
-        state.planets[o.id] = o
+      const obj = state.planet
+      for (const o of action.payload) {
+        obj.data[o.id] = o
+        obj.byInternalId[o.internalId] = o.id
+        add(obj.bySystem, o.system, o.id)
+      }
 
-      state.planetMaxResources = {}
-      for (const planet of Object.values(state.planets))
-        for (const { material, perDay } of planet.resources) {
-          if (!state.planetMaxResources[material])
-            state.planetMaxResources[material] = perDay
-          else
-            state.planetMaxResources[material] = Math.max(state.planetMaxResources[material], perDay)
-        }
+      // state.planetMaxResources = {}
+      // for (const planet of Object.values(state.planets))
+      //   for (const { material, perDay } of planet.resources) {
+      //     if (!state.planetMaxResources[material])
+      //       state.planetMaxResources[material] = perDay
+      //     else
+      //       state.planetMaxResources[material] = Math.max(state.planetMaxResources[material], perDay)
+      //   }
     },
     setSystems(state, action: PayloadAction<System[]>) {
-      for (const o of action.payload)
-        state.systems[o.id] = o
-    },
-    setSectors(state, action: PayloadAction<Sector[]>) {
-      state.sectors = action.payload
+      const obj = state.system
+      for (const o of action.payload) {
+        obj.data[o.id] = o
+        obj.byInternalId[o.internalId] = o.id
+        obj.byName[o.name] = o.id
+      }
     },
   }
 })
 
-export const { setMaterials, setBuildings, setPlanets, setSystems, setSectors } = WorldDataSlice.actions
+function add(container: Record<string, string[]>, key: string, value: string) {
+  if (!container[key])
+    container[key] = []
+  container[key].push(value)
+}
+
+export const { setMaterials, setBuildings, setPlanets, setSystems } = WorldDataSlice.actions
 export const { reducer: worldDataSlice } = WorldDataSlice
 
 export function selectMaterials() {
-  return useAppSelector(state => state.worldData.materials)
+  return useAppSelector(state => state.worldData.material.data)
 }
+export function selectMaterialsByInternalId() {
+  return useAppSelector(state => state.worldData.material.byInternalId)
+}
+
 export function selectBuildings() {
-  return useAppSelector(state => state.worldData.buildings)
+  return useAppSelector(state => state.worldData.building.data)
 }
 export function selectPlanets() {
-  return useAppSelector(state => state.worldData.planets)
+  return useAppSelector(state => state.worldData.planet.data)
 }
 export function selectSystems() {
-  return useAppSelector(state => state.worldData.systems)
+  return useAppSelector(state => state.worldData.system.data)
+}
+
+export function selectPlanetsPerSystem() {
+  const planets = selectPlanets()
+  const systemsByInternalId = useAppSelector(state => state.worldData.system.byInternalId)
+  const planetsPerSystem = useMemo(() => {
+    const result: Record<string, string[]> = {}
+    for (const [id, planet] of Object.entries(planets))
+      add(result, systemsByInternalId[planet.system], id)
+    return result;
+  }, [planets, systemsByInternalId])
+  return { planets, planetsPerSystem }
 }

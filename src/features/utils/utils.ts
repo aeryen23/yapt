@@ -15,3 +15,9 @@ export function numberForUser(v: Number, precision = 2): string {
     return "undefined"
   return v.toFixed(precision)
 }
+
+export function isEmpty(obj: Record<any, any>) {
+  for (const i in obj)
+    return false
+  return true
+}

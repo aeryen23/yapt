@@ -1,46 +1,62 @@
 
 import { store } from "../../app/store";
 import { FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types";
-import { BuildingType, Material, Planet, Recipe, Sector, System } from "../../world-data/world-data";
-import { setBuildings, setMaterials, setPlanets, setSectors, setSystems } from "../../world-data/world-data-slice";
+import { Building, BuildingType, Material, Planet, Recipe, System, WorkforceLevel } from "../../world-data/world-data";
+import { setBuildings, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice";
 
-type StoreDescriptor<F, T> = {
+type StoreDescriptor<FioType, AppType> = {
   name: string,
   id: string,
   path: string,
-  transform: (a: F) => T,
-  // set: (a: T[]) => void
+  transform: (a: FioType[]) => AppType[],
+  set: (a: AppType[]) => void
 }
 const mapCA = (amounts: FioCommodityAmount[]) => amounts.reduce((acc, ca) => ({ ...acc, [ca.CommodityTicker]: ca.Amount }), {})
 
+function getBuildingType(bui: FioBuilding) {
+  // NOTE: the type is not transfered by FIO, so we just create it our own based on some heuristics
+  if (bui.Ticker == "CM")
+    return BuildingType.CORE
+  if (bui.Ticker == "STO")
+    return BuildingType.STORAGE
+  if (bui.Name.startsWith("planetaryProject"))
+    return BuildingType.PLANETARY_PROJECT
+  if (bui.Name.startsWith("corporationProject"))
+    return BuildingType.CORPORATION_PROJECT
+  if (bui.Recipes.length) {
+    if (bui.Expertise == "RESOURCE_EXTRACTION" && bui.Recipes.filter(r => r.Inputs.length == 0).length > 0)
+      return BuildingType.RESOURCES
+    else {
+      return BuildingType.PRODUCTION
+      // for (const level of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as WorkforceLevel[])
+      //   if (bui.workforce[level] > 0) {
+      //     bui.workforceLevel = level
+      //     break;
+      //   }
+    }
+  }
+  return BuildingType.HABITATION
+}
+
 const idbStores = {
-  systemstars: {
-    name: "systemstars", id: "id", path: "/systemstars",
-    transform: (entry: FioSystemStar) => ({
-      id: entry.SystemId,
-      name: entry.NaturalId,
-    }),
-    // const systemsFio = await loadData<FioSystemStar[]>("/systemstars")
-    // const systemIdtoId: Record<string, string> = systemsFio.reduce((acc, system) => ({ ...acc, [system.SystemId]: system.NaturalId }), {})
-    set: () => { }
-  },
   materials: {
     name: "materials", id: "id", path: "/material/allmaterials",
-    transform: (entry: FioMaterial) => ({
+    transform: transformAll((entry: FioMaterial) => ({
       id: entry.Ticker,
       name: entry.Name,
       category: entry.CategoryName,
       weight: entry.Weight,
       volume: entry.Volume,
-    }) as Material, set: setMaterials
+    }) as Material),
+    set: (entries: Material[]) => store.dispatch(setMaterials(entries))
   },
   buildings: {
     name: "buildings", id: "id", path: "/building/allbuildings",
-    transform: (entry: FioBuilding) => ({
+    transform: transformAll((entry: FioBuilding) => ({
       id: entry.Ticker,
       name: entry.Name,
-      type: BuildingType.PRODUCTION,
-      workforceLevel: "Pioneers",
+      type: getBuildingType(entry),
+      workforceLevel: "Pioneers", // TODO
       costs: mapCA(entry.BuildingCosts),
       recipes: entry.Recipes.map<Recipe>(r => ({
         inputs: mapCA(r.Inputs),
@@ -56,76 +72,77 @@ const idbStores = {
         Scientists: entry.Scientists,
       },
       area: entry.AreaCost,
-    }), set: setBuildings
+    }) as Building),
+    set: (entries: Building[]) => store.dispatch(setBuildings(entries)),
   },
   systems: {
     name: "systems", id: "id", path: "/systemstars",
-    transform: (entry: FioSystemStar) => ({
-      id: entry.NaturalId,
-      name: entry.Name,
-      type: entry.Type,
-      position: [entry.PositionX, entry.PositionY, entry.PositionZ],
-      sector: entry.SectorId,
-      subSector: entry.SubSectorId,
-      // connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
-      // planets: planets.filter(p => p.system == entry.NaturalId).map(p => p.id),
-    }) as System, set: setSystems
+    transform: (entries: FioSystemStar[]) => {
+      const systemIdtoId: Record<string, string> = entries.reduce((acc, system) => ({ ...acc, [system.SystemId]: system.NaturalId }), {})
+      return entries.map(entry => ({
+        id: entry.NaturalId,
+        internalId: entry.SystemId,
+        name: entry.Name,
+        type: entry.Type,
+        connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
+        // position: [entry.PositionX, entry.PositionY, entry.PositionZ],
+        // sector: entry.SectorId,
+        // subSector: entry.SubSectorId,
+        // planets: planets.filter(p => p.system == entry.NaturalId).map(p => p.id),
+      }) as System)
+    },
+    set: (entries: System[]) => store.dispatch(setSystems(entries)),
+
   },
   planets: {
     name: "planets", id: "id", path: "/planet/allplanets/full",
-    transform: (entry: FioPlanet) => ({
+    transform: transformAll((entry: FioPlanet) => ({
       id: entry.PlanetNaturalId,
+      internalId: entry.PlanetId,
       name: entry.PlanetName,
-      system: "",//systemIdtoId[entry.SystemId],
+      system: entry.SystemId,
       resources: entry.Resources.map<Planet['resources'][0]>(r => ({
-        material: "",//matIdToTicker[r.MaterialId],
+        material: r.MaterialId,
         perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
         type: r.ResourceType,
       })),
-      cmCosts: entry.BuildRequirements.reduce((acc, r) => ({ ...acc, [r.MaterialTicker]: r.MaterialAmount }), {}),
-      orbitData: {
-        gravity: entry.Gravity,
-        magneticField: entry.MagneticField,
-        mass: entry.Mass,
-        massEarth: entry.MassEarth,
-        orbitSemiMajorAxis: entry.OrbitSemiMajorAxis,
-        orbitEccentricity: entry.OrbitEccentricity,
-        orbitInclination: entry.OrbitInclination,
-        orbitRightAscension: entry.OrbitRightAscension,
-        orbitPeriapsis: entry.OrbitPeriapsis,
-        orbitIndex: entry.OrbitIndex,
-      },
-      surfaceData: {
-        pressure: entry.Pressure,
-        radiation: entry.Radiation,
-        radius: entry.Radius,
-        sunlight: entry.Sunlight,
+      // cmCosts: planet.BuildRequirements.reduce((acc, r) => ({ ...acc, [r.MaterialTicker]: r.MaterialAmount }), {}),
+      // flightData: {
+      //   magneticField: planet.MagneticField,
+      //   mass: planet.Mass,
+      //   massEarth: planet.MassEarth,
+      //   radiation: planet.Radiation,
+      // },
+      // orbitData: {
+      //   orbitSemiMajorAxis: planet.OrbitSemiMajorAxis,
+      //   orbitEccentricity: planet.OrbitEccentricity,
+      //   orbitInclination: planet.OrbitInclination,
+      //   orbitRightAscension: planet.OrbitRightAscension,
+      //   orbitPeriapsis: planet.OrbitPeriapsis,
+      //   orbitIndex: planet.OrbitIndex,
+      // },
+      environment: {
         surface: entry.Surface,
-        temperature: entry.Temperature,
         fertility: entry.Fertility,
+        temperature: entry.Temperature,
+        gravity: entry.Gravity,
+        pressure: entry.Pressure,
+        // radius: planet.Radius,
+        // sunlight: planet.Sunlight,
       },
-      factionCode: entry.FactionCode || undefined,
-      tier: 0, //planet.PlanetTier, it is not set for some planets, so just always re-calculate it
-    }) as Planet, set: setPlanets
+      // factionCode: planet.FactionCode || undefined,
+    }) as Planet),
+    set: (entries: Planet[]) => store.dispatch(setPlanets(entries)),
   },
-  sectors: {
-    name: "sectors", id: "id", path: "/systemstars/worldsectors",
-    transform: (entry: FioWorldSector) => ({
-      id: entry.SectorId,
-      name: entry.Name,
-      position: [entry.HexQ, entry.HexR, entry.HexS],
-      subSectors: entry.SubSectors.map(sub => ({
-        id: sub.SSId,
-        vertices: sub.Vertices.map(v => [v.X, v.Y, v.Z])
-      })),
-    }) as Sector, set: setSectors
-  },
+}
+function transformAll<FioType, AppType>(transform: (fioData: FioType) => AppType) {
+  return (fioData: FioType[]) => fioData.map<AppType>(entry => transform(entry))
 }
 
 const FETCHES_STORE = "fetches"
 
 async function openDb() {
-  return await new Promise<IDBDatabase>((resolve, reject) => {
+  return new Idb(await new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open("worldData", 1)
     request.onupgradeneeded = (e) => {
       const db = request.result;
@@ -137,49 +154,35 @@ async function openDb() {
     }
     request.onsuccess = () => resolve(request.result)
     request.onerror = reject
-  })
-
+  }))
 }
+
 export async function initDb() {
   const db = await openDb()
-  await initializeStore(db, idbStores.systemstars)
   await Promise.all([
-    initializeStore(db, idbStores.materials),
-    initializeStore(db, idbStores.buildings),
+    loadInitial(db, idbStores.materials),
+    loadInitial(db, idbStores.buildings),
+    loadInitial(db, idbStores.systems),
+    loadInitial(db, idbStores.planets),
   ])
 }
 
-type FetchInfo = {
-  id: string
-  timestamp: Date
+async function loadInitial<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>) {
+  if (await db.getFetchInfo(desc.name))
+    desc.set(await db.getAll<AppType>(desc.name))
+  else
+    await load(db, desc)
+}
+async function load<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>) {
+  const fioData = await fetchFioData<FioType[]>(desc.path)
+  const data = desc.transform(fioData)
+  await db.putAll(desc.name, data)
+  await db.putFetchInfo(desc.name)
+  desc.set(data)
 }
 
-async function initializeStore<F, T>(db: IDBDatabase, descriptor: StoreDescriptor<F, T>) {
-  let info = await get<FetchInfo>(db, FETCHES_STORE, descriptor.path)
-  let data: T[]
-  if (!info) {
-    const url = "https://rest.fnar.net" + descriptor.path
-    const fioData = await fetchData<F[]>(url)
-    data = fioData.map(entry => descriptor.transform(entry))
-    await putAll(db, descriptor.name, data)
-
-    info = {
-      id: descriptor.path,
-      timestamp: new Date()
-    }
-    await put(db, FETCHES_STORE, info)
-  }
-  else {
-    data = await getAll<T>(db, descriptor.name)
-  }
-
-  // store.dispatch(descriptor.set(data))
-  // TODO: start a timer to update according to info.timestamp
-}
-
-async function fetchData<T = any>(url: string): Promise<T> {
-  console.log("fetching data", url)
-  const response = await fetch(url, {
+async function fetchFioData<FioType = any>(url: string): Promise<FioType> {
+  const response = await fetch("https://rest.fnar.net" + url, {
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
@@ -188,44 +191,64 @@ async function fetchData<T = any>(url: string): Promise<T> {
   return await response.json()
 }
 
-async function get<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | undefined> {
-  return await new Promise<T>(resolve => {
-    const transaction = db.transaction(storeName, "readonly")
-    const store = transaction.objectStore(storeName)
-    const request = store.get(key)
-    transaction.oncomplete = () => {
-      resolve(request.result)
-    }
-  })
+type FetchInfo = {
+  id: string
+  timestamp: Date
 }
-async function getAll<T>(db: IDBDatabase, storeName: string) {
-  return new Promise<T[]>(resolve => {
-    const transaction = db.transaction(storeName, "readonly")
-    const store = transaction.objectStore(storeName)
-    const request = store.getAll()
-    request.onsuccess = () => {
-      resolve(request.result)
-    }
-  })
-}
-async function put<T = any>(db: IDBDatabase, storeName: string, object: T, key?: string) {
-  await new Promise<void>(resolve => {
-    const transaction = db.transaction(storeName, "readwrite")
-    transaction.oncomplete = () => {
-      resolve()
-    }
-    const store = transaction.objectStore(storeName)
-    store.put(object, key)
-  })
-}
-async function putAll<T>(db: IDBDatabase, storeName: string, objects: T[]) {
-  await new Promise<void>(resolve => {
-    const transaction = db.transaction(storeName, "readwrite")
-    transaction.oncomplete = () => {
-      resolve()
-    }
-    const store = transaction.objectStore(storeName)
-    for (const object of objects)
-      store.put(object)
-  })
+
+class Idb {
+  constructor(private readonly db: IDBDatabase) { }
+
+  async get<T>(storeName: string, key: string): Promise<T | undefined> {
+    return await new Promise<T>(resolve => {
+      const transaction = this.db.transaction(storeName, "readonly")
+      const store = transaction.objectStore(storeName)
+      const request = store.get(key)
+      transaction.oncomplete = () => {
+        resolve(request.result)
+      }
+    })
+  }
+  async put<T = any>(storeName: string, object: T, key?: string) {
+    await new Promise<void>(resolve => {
+      const transaction = this.db.transaction(storeName, "readwrite")
+      transaction.oncomplete = () => {
+        resolve()
+      }
+      const store = transaction.objectStore(storeName)
+      store.put(object, key)
+    })
+  }
+
+  async getAll<T>(storeName: string) {
+    return new Promise<T[]>(resolve => {
+      const transaction = this.db.transaction(storeName, "readonly")
+      const store = transaction.objectStore(storeName)
+      const request = store.getAll()
+      request.onsuccess = () => {
+        resolve(request.result)
+      }
+    })
+  }
+  async putAll<T>(storeName: string, objects: T[]) {
+    await new Promise<void>(resolve => {
+      const transaction = this.db.transaction(storeName, "readwrite")
+      transaction.oncomplete = () => {
+        resolve()
+      }
+      const store = transaction.objectStore(storeName)
+      for (const object of objects)
+        store.put(object)
+    })
+  }
+
+  async getFetchInfo(id: string) {
+    return await this.get<FetchInfo>(FETCHES_STORE, id)
+  }
+  async putFetchInfo(id: string) {
+    await this.put<FetchInfo>(FETCHES_STORE, {
+      id,
+      timestamp: new Date()
+    })
+  }
 }
