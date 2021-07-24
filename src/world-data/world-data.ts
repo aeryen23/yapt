@@ -20,12 +20,12 @@ export function getPlanetMaterials(planet: Planet, area = 1) {
 
   if (planet.environment.gravity < 0.25)
     result.MGC = 1
-  if (planet.environment.gravity > 2)
+  if (planet.environment.gravity > 2.5)
     result.BL = 1
 
-  if (planet.environment.temperature < 0.25)
+  if (planet.environment.temperature < -25)
     result.INS = area * 10
-  if (planet.environment.temperature > 2)
+  if (planet.environment.temperature > 75)
     result.TSH = 1
 
   return result
@@ -96,7 +96,6 @@ async function loadWorldData() {
 
 export interface Material {
   id: string;
-  internalId: string;
   name: string;
   category: string;
   weight: number;
@@ -178,7 +177,6 @@ export interface PlanetEnvironment {
 }
 export interface Planet {
   id: string;
-  internalId: string;
   name: string;
   system: string;
   resources: PlanetResource[];
@@ -191,7 +189,6 @@ export interface Planet {
 
 export interface System {
   id: string;
-  internalId: string;
   name: string;
   // position: Position;
   // sector: string;

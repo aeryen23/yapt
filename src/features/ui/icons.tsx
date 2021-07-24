@@ -2,17 +2,17 @@ import React from "react"
 import styles from "./icons.module.css"
 import { selectMaterials } from "../../world-data/world-data-slice"
 
-export function styleForMaterial(materialId: string) {
-  const materials = selectMaterials() // TODO only need the category of a single material
-  const category = materials[materialId].category.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
+export function styleForMaterial(materialCategory: string) {
+  const category = materialCategory?.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
   return styles[category] ?? styles.defaultColor
 }
 export function MaterialIcon({ materialId, amount, size = 48, fontFactor = 0.33, isSelected = false, onClick }: { materialId: string, amount?: number, size?: number, fontFactor?: number, isSelected?: boolean, onClick?: (material: string, amount?: number) => void }) {
   const actualSize = size
   const containerStyle = {}
+  const materials = selectMaterials() // TODO only need the category of a single material
 
   return (<div className={styles.container} style={containerStyle}>
-    <Icon label={materialId} colorClass={styleForMaterial(materialId)} size={actualSize} fontFactor={fontFactor} isSelected={isSelected} onClick={e => onClick && onClick(materialId, amount)} />
+    <Icon label={materialId} colorClass={styleForMaterial(materials[materialId]?.category)} size={actualSize} fontFactor={fontFactor} isSelected={isSelected} onClick={e => onClick && onClick(materialId, amount)} />
     {!amount ? null : (<div className={styles.indicatorContainer}>
       <div className={styles.indicator}>{amount}</div>
     </div>)}

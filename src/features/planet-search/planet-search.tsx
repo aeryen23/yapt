@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { getPlanetMaterials, PlanetResource, System } from "../../world-data/world-data"
-import { IdMap, selectMaterials, selectMaterialsByInternalId, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
+import { IdMap, selectMaterials, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
@@ -58,8 +58,6 @@ export function PlanetSearch() {
   const { planets, planetsPerSystem } = selectPlanetsPerSystem()
 
   const [startSystem, setStartSystem] = useState("OT-580")
-  const [systemDistances, setSystemDistances] = useState(new Map<string, number>())
-  const [matchingPlanets, setMatchingPlanets] = useState([] as SingleResult[])
   const [materialFilter, setMaterialFilter] = useState([] as string[])
   const [materialFilterAnd, setMaterialFilterAnd] = useState(false)
   const [maxJumps, setMaxJumps] = useState(10 as number | undefined)
@@ -72,15 +70,13 @@ export function PlanetSearch() {
     , [systems])
 
 
-  useEffect(() => {
+  const systemDistances = useMemo(() => {
     if (!systems[startSystem])
-      return
-    console.time("Evaluate jumps")
-    setSystemDistances(calculateSystemDistances(startSystem, systems))
-    console.timeEnd("Evaluate jumps")
+      return new Map<string, number>()
+    return calculateSystemDistances(startSystem, systems)
   }, [startSystem, systems])
 
-  useEffect(() => {
+  const matchingPlanets = useMemo(() => {
     console.time("Evaluate planets")
 
     // TODO: split systems vs found planets, so planets can be more easily be filtered/sorted without needing to reiterate the jump counts
@@ -131,7 +127,7 @@ export function PlanetSearch() {
       return res
     })
 
-    setMatchingPlanets(newResult)
+    return newResult
   }, [systems, planetsPerSystem, systemDistances, maxJumps, buildingMaterials, sortColumn, cxDistances])
 
   // Settings:
@@ -171,10 +167,9 @@ export function PlanetSearch() {
   }
 
   const materials = selectMaterials()
-  const materialByInternalId = selectMaterialsByInternalId()
 
   const allResources = useMemo(() => {
-    const mats = [... new Set(Object.values(planets).map(p => p.resources.map(r => materialByInternalId[r.material])).flat())]
+    const mats = [... new Set(Object.values(planets).map(p => p.resources.map(r => r.material)).flat())]
     const cat2mats = mats.reduce((acc, mat) => {
       if (!materials[mat]) {
         console.error("missing mat", mat, materials)
@@ -187,7 +182,7 @@ export function PlanetSearch() {
       return acc
     }, {} as Record<string, string[]>)
     return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }));
-  }, [materials, materialByInternalId])
+  }, [materials])
 
 
   if (isEmpty(planets) || isEmpty(systems))
@@ -259,17 +254,19 @@ export function PlanetSearch() {
               <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
               {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
                 const used = mats.filter(m => planetMaterials.indexOf(m) != -1)[0]
-                return <td className={used ? styleForMaterial(used) : ""}>{used}</td>
+                return <td key={mats.join()} className={used ? styleForMaterial(materials[used]?.category) : ""}>{used}</td>
               }).flat()}
               {
-                materialFilter.map(filter => <td key={filter} className={styleForMaterial(filter)}>
+                materialFilter.map(filter => <td key={filter} className={styleForMaterial(materials[filter]?.category)}>
                   {planet.resources.filter(r => r.material == filter).map(r => showResource(r)).flat() || null}
                 </td>)
               }
               {
-                planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r => <>
-                  <td key={r.material} className={styleForMaterial(r.material)} style={{ textAlign: "right" }}>{<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}</td>
-                </>).concat(new Array(5).fill(<td />)).slice(0, 5).flat()
+                planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r =>
+                  <td className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }}>
+                    {<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}
+                  </td>
+                ).concat(new Array(5).fill(0).map((_, idx) => <td key={"filler" + idx} />)).slice(0, 5).flat()
               }
               {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(planets[r.planet].system)}</td>)}
             </tr>)
@@ -279,6 +276,33 @@ export function PlanetSearch() {
     </div>
   </div >
 }
+
+// function MaterialSelection({ onChanged }: { onChanged: (selected: string[]) => void)} {
+//   const [materialFilter, setMaterialFilter] = useState([] as string[])
+
+//   function toggleMaterialFilter(mat: string) {
+//     if (materialFilter.indexOf(mat) == -1)
+//       setMaterialFilter([...materialFilter, mat])
+//     else {
+//       setMaterialFilter(materialFilter.filter(m => m != mat))
+//       // TODO: if filtered material as the current sorting one, reset sort order
+//     }
+//   }
+
+//   return (<div style={{ display: "flex", flexWrap: "wrap" }}>
+//     {
+//       allResources.map(o => o.materials.map(mat => <div key={mat} style={{ margin: 1 }}>
+//         <MaterialIcon key={mat} materialId={mat} size={32} isSelected={materialFilter.indexOf(mat) != -1} onClick={toggleMaterialFilter} />
+//       </div>)).flat()
+//     }
+//     <div style={{ margin: 1, position: "relative" }}>
+//       <Icon label="Reset" size={32} colorClass="" onClick={() => setMaterialFilter([])} />
+//     </div>
+//     <div style={{ margin: 1, position: "relative" }}>
+//       <Icon label={materialFilterAnd ? "ALL" : "ANY"} hoverText="Toggle filtering any/all selected materials" size={32} colorClass="" onClick={() => setMaterialFilterAnd(!materialFilterAnd)} />
+//     </div>
+//   </div>)
+// }
 
 const selectedColors = [
   "lightskyblue",
@@ -308,7 +332,7 @@ function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
       const checkId: string = next.pop()!
       const jumps = evaluated.get(checkId)! + 1
       const check = systems[checkId]
-      if (!check){
+      if (!check) {
         console.error("system not found", checkId, systems)
         continue;
       }

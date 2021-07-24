@@ -4,11 +4,15 @@ import { useAppSelector } from "../app/hooks";
 import { Material, Building, Planet, System, BuildingType, Sector } from "./world-data";
 
 export type IdMap<T> = Record<string, T>
+export type FetchState = {
+  id: string
+  timestamp: string
+}
 
 const initialState = {
+  fetchState: {} as Record<string, string>,
   material: {
     data: {} as IdMap<Material>,
-    byInternalId: {} as IdMap<string>,
     byCategory: {} as IdMap<string[]>,
   },
   building: {
@@ -18,12 +22,10 @@ const initialState = {
   },
   planet: {
     data: {} as IdMap<Planet>,
-    byInternalId: {} as IdMap<string>,
     bySystem: {} as IdMap<string[]>,
   },
   system: {
     data: {} as IdMap<System>,
-    byInternalId: {} as IdMap<string>,
     byName: {} as IdMap<string>,
   },
 
@@ -39,11 +41,15 @@ const WorldDataSlice = createSlice({
   name: "worldData",
   initialState,
   reducers: {
+    setFetchState(state, action: PayloadAction<FetchState[]>) {
+      const obj = state.fetchState
+      for (const o of action.payload)
+        obj[o.id] = o.timestamp
+    },
     setMaterials(state, action: PayloadAction<Material[]>) {
       const obj = state.material
       for (const o of action.payload) {
         obj.data[o.id] = o
-        obj.byInternalId[o.internalId] = o.id
         add(obj.byCategory, o.category, o.id)
       }
     },
@@ -83,7 +89,6 @@ const WorldDataSlice = createSlice({
       const obj = state.planet
       for (const o of action.payload) {
         obj.data[o.id] = o
-        obj.byInternalId[o.internalId] = o.id
         add(obj.bySystem, o.system, o.id)
       }
 
@@ -100,7 +105,6 @@ const WorldDataSlice = createSlice({
       const obj = state.system
       for (const o of action.payload) {
         obj.data[o.id] = o
-        obj.byInternalId[o.internalId] = o.id
         obj.byName[o.name] = o.id
       }
     },
@@ -113,14 +117,15 @@ function add(container: Record<string, string[]>, key: string, value: string) {
   container[key].push(value)
 }
 
-export const { setMaterials, setBuildings, setPlanets, setSystems } = WorldDataSlice.actions
+export const { setFetchState, setMaterials, setBuildings, setPlanets, setSystems } = WorldDataSlice.actions
 export const { reducer: worldDataSlice } = WorldDataSlice
+
+export function selectFetchState() {
+  return useAppSelector(state => Object.keys(state.worldData.fetchState).map(id => ({ id, timestamp: state.worldData.fetchState[id] } as FetchState)))
+}
 
 export function selectMaterials() {
   return useAppSelector(state => state.worldData.material.data)
-}
-export function selectMaterialsByInternalId() {
-  return useAppSelector(state => state.worldData.material.byInternalId)
 }
 
 export function selectBuildings() {
@@ -135,12 +140,12 @@ export function selectSystems() {
 
 export function selectPlanetsPerSystem() {
   const planets = selectPlanets()
-  const systemsByInternalId = useAppSelector(state => state.worldData.system.byInternalId)
+  const systems = selectSystems()
   const planetsPerSystem = useMemo(() => {
-    const result: Record<string, string[]> = {}
+    const result: Record<string, string[]> = Object.keys(systems).reduce((acc, system) => ({ ...acc, [system]: [] }), {})
     for (const [id, planet] of Object.entries(planets))
-      add(result, systemsByInternalId[planet.system], id)
+      add(result, planet.system, id)
     return result;
-  }, [planets, systemsByInternalId])
+  }, [planets, systems])
   return { planets, planetsPerSystem }
 }

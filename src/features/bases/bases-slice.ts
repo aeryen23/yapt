@@ -90,8 +90,8 @@ function makeEmptyBase(planet: string): Base {
 }
 
 export function currentBaseId() {
-  return useAppSelector(state => state.bases.currentId)
+  return useAppSelector(state => state.settings.bases.currentId)
 }
 export function currentBase() {
-  return useAppSelector(state => state.bases.list.filter(b => b.id == state.bases.currentId)[0])
+  return useAppSelector(state => state.settings.bases.list.filter(b => b.id == state.settings.bases.currentId)[0])
 }

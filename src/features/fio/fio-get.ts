@@ -2,14 +2,15 @@
 import { store } from "../../app/store";
 import { FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types";
 import { Building, BuildingType, Material, Planet, Recipe, System, WorkforceLevel } from "../../world-data/world-data";
-import { setBuildings, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice";
+import { IdMap, setBuildings, setFetchState, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice";
 
 type StoreDescriptor<FioType, AppType> = {
   name: string,
   id: string,
   path: string,
-  transform: (a: FioType[]) => AppType[],
-  set: (a: AppType[]) => void
+  transform: (a: FioType[], dependencies: IdMap<string>[]) => AppType[],
+  set: (a: AppType[]) => void,
+  internalIdMapping?: { internalId: string, id: string }
 }
 const mapCA = (amounts: FioCommodityAmount[]) => amounts.reduce((acc, ca) => ({ ...acc, [ca.CommodityTicker]: ca.Amount }), {})
 
@@ -38,71 +39,71 @@ function getBuildingType(bui: FioBuilding) {
   return BuildingType.HABITATION
 }
 
-const idbStores = {
-  materials: {
-    name: "materials", id: "id", path: "/material/allmaterials",
-    transform: transformAll((entry: FioMaterial) => ({
-      id: entry.Ticker,
-      name: entry.Name,
-      category: entry.CategoryName,
-      weight: entry.Weight,
-      volume: entry.Volume,
-    }) as Material),
-    set: (entries: Material[]) => store.dispatch(setMaterials(entries))
-  },
-  buildings: {
-    name: "buildings", id: "id", path: "/building/allbuildings",
-    transform: transformAll((entry: FioBuilding) => ({
-      id: entry.Ticker,
-      name: entry.Name,
-      type: getBuildingType(entry),
-      workforceLevel: "Pioneers", // TODO
-      costs: mapCA(entry.BuildingCosts),
-      recipes: entry.Recipes.map<Recipe>(r => ({
-        inputs: mapCA(r.Inputs),
-        outputs: mapCA(r.Outputs),
-        durationMs: r.DurationMs,
-      })),
-      expertise: entry.Expertise || undefined,
-      workforce: {
-        Pioneers: entry.Pioneers,
-        Settlers: entry.Settlers,
-        Technicians: entry.Technicians,
-        Engineers: entry.Engineers,
-        Scientists: entry.Scientists,
-      },
-      area: entry.AreaCost,
-    }) as Building),
-    set: (entries: Building[]) => store.dispatch(setBuildings(entries)),
-  },
-  systems: {
-    name: "systems", id: "id", path: "/systemstars",
-    transform: (entries: FioSystemStar[]) => {
-      const systemIdtoId: Record<string, string> = entries.reduce((acc, system) => ({ ...acc, [system.SystemId]: system.NaturalId }), {})
-      return entries.map(entry => ({
-        id: entry.NaturalId,
-        internalId: entry.SystemId,
-        name: entry.Name,
-        type: entry.Type,
-        connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
-        // position: [entry.PositionX, entry.PositionY, entry.PositionZ],
-        // sector: entry.SectorId,
-        // subSector: entry.SubSectorId,
-        // planets: planets.filter(p => p.system == entry.NaturalId).map(p => p.id),
-      }) as System)
+const materialsDesc: StoreDescriptor<FioMaterial, Material> = {
+  name: "materials", id: "id", path: "/material/allmaterials",
+  transform: transformAll(entry => ({
+    id: entry.Ticker,
+    name: entry.Name,
+    category: entry.CategoryName,
+    weight: entry.Weight,
+    volume: entry.Volume,
+  })),
+  set: entries => store.dispatch(setMaterials(entries)),
+  internalIdMapping: { internalId: "MatId", id: "Ticker" },
+}
+const buildingsDesc: StoreDescriptor<FioBuilding, Building> = {
+  name: "buildings", id: "id", path: "/building/allbuildings",
+  transform: transformAll(entry => ({
+    id: entry.Ticker,
+    name: entry.Name,
+    type: getBuildingType(entry),
+    workforceLevel: "Pioneers", // TODO
+    costs: mapCA(entry.BuildingCosts),
+    recipes: entry.Recipes.map<Recipe>(r => ({
+      inputs: mapCA(r.Inputs),
+      outputs: mapCA(r.Outputs),
+      durationMs: r.DurationMs,
+    })),
+    expertise: entry.Expertise || undefined,
+    workforce: {
+      Pioneers: entry.Pioneers,
+      Settlers: entry.Settlers,
+      Technicians: entry.Technicians,
+      Engineers: entry.Engineers,
+      Scientists: entry.Scientists,
     },
-    set: (entries: System[]) => store.dispatch(setSystems(entries)),
-
+    area: entry.AreaCost,
+  })),
+  set: entries => store.dispatch(setBuildings(entries)),
+}
+const systemsDesc: StoreDescriptor<FioSystemStar, System> = {
+  name: "systems", id: "id", path: "/systemstars",
+  transform: entries => {
+    const systemIdtoId: Record<string, string> = entries.reduce((acc, system) => ({ ...acc, [system.SystemId]: system.NaturalId }), {})
+    return entries.map(entry => ({
+      id: entry.NaturalId,
+      name: entry.Name,
+      type: entry.Type,
+      connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
+      // position: [entry.PositionX, entry.PositionY, entry.PositionZ],
+      // sector: entry.SectorId,
+      // subSector: entry.SubSectorId,
+      // planets: planets.filter(p => p.system == entry.NaturalId).map(p => p.id),
+    }))
   },
-  planets: {
-    name: "planets", id: "id", path: "/planet/allplanets/full",
-    transform: transformAll((entry: FioPlanet) => ({
+  set: entries => store.dispatch(setSystems(entries)),
+  internalIdMapping: { internalId: "SystemId", id: "NaturalId" },
+}
+const planetsDesc: StoreDescriptor<FioPlanet, Planet> = {
+  name: "planets", id: "id", path: "/planet/allplanets/full",
+  transform: (entries, dependencies) => {
+    const [systemIdtoId, materialIdtoId] = dependencies
+    return entries.map(entry => ({
       id: entry.PlanetNaturalId,
-      internalId: entry.PlanetId,
       name: entry.PlanetName,
-      system: entry.SystemId,
+      system: systemIdtoId[entry.SystemId],
       resources: entry.Resources.map<Planet['resources'][0]>(r => ({
-        material: r.MaterialId,
+        material: materialIdtoId[r.MaterialId],
         perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
         type: r.ResourceType,
       })),
@@ -131,54 +132,63 @@ const idbStores = {
         // sunlight: planet.Sunlight,
       },
       // factionCode: planet.FactionCode || undefined,
-    }) as Planet),
-    set: (entries: Planet[]) => store.dispatch(setPlanets(entries)),
+    }))
   },
+  set: entries => store.dispatch(setPlanets(entries)),
+  internalIdMapping: { internalId: "PlanetId", id: "PlanetNaturalId" },
+}
+const idbStores = {
+  materials: materialsDesc,
+  buildings: buildingsDesc,
+  systems: systemsDesc,
+  planets: planetsDesc,
 }
 function transformAll<FioType, AppType>(transform: (fioData: FioType) => AppType) {
   return (fioData: FioType[]) => fioData.map<AppType>(entry => transform(entry))
 }
 
-const FETCHES_STORE = "fetches"
-
-async function openDb() {
-  return new Idb(await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open("worldData", 1)
-    request.onupgradeneeded = (e) => {
-      const db = request.result;
-      if (e.oldVersion < 1) {
-        db.createObjectStore(FETCHES_STORE, { keyPath: "id" })
-        for (const { name, id } of Object.values(idbStores))
-          db.createObjectStore(name, { keyPath: id })
-      }
-    }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = reject
-  }))
-}
-
 export async function initDb() {
-  const db = await openDb()
+  const db = await Idb.open()
+  const fetchInfo = await db.getAll<FetchInfo>(FETCHES_STORE)
+  store.dispatch(setFetchState(fetchInfo.map(info => ({ id: info.id, timestamp: info.timestamp.toUTCString() }))))
+  Object.values(idbStores).map(desc => desc.name) // instead of desc.name use Object.keys()?
+
+  const materials = loadInitial(db, materialsDesc)
+  const buildings = loadInitial(db, buildingsDesc)
+  const systems = loadInitial(db, systemsDesc)
+  const planets = loadInitial(db, planetsDesc, [systems, materials])
   await Promise.all([
-    loadInitial(db, idbStores.materials),
-    loadInitial(db, idbStores.buildings),
-    loadInitial(db, idbStores.systems),
-    loadInitial(db, idbStores.planets),
+    materials,
+    buildings,
+    systems,
+    planets,
   ])
 }
 
-async function loadInitial<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>) {
-  if (await db.getFetchInfo(desc.name))
+async function loadInitial<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>, dependencies: Promise<IdMap<string> | undefined>[] = []) {
+  if (await db.getFetchInfo(desc.name)) {
     desc.set(await db.getAll<AppType>(desc.name))
+    if (desc.internalIdMapping)
+      return await db.getIdMap(desc.name)
+  }
   else
-    await load(db, desc)
+    return await load(db, desc, dependencies)
+  return undefined
 }
-async function load<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>) {
+async function load<FioType extends Record<string, any>, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>, dependencies: Promise<IdMap<string> | undefined>[] = []) {
   const fioData = await fetchFioData<FioType[]>(desc.path)
-  const data = desc.transform(fioData)
+  let idMapping: IdMap<string> | undefined
+  if (desc.internalIdMapping) {
+    const im = desc.internalIdMapping
+    idMapping = fioData.reduce((acc, entry) => ({ ...acc, [entry[im.internalId]]: entry[im.id] }), {} as IdMap<string>)
+    await db.putIdMap(desc.name, idMapping)
+  }
+  const data = desc.transform(fioData, (await Promise.all(dependencies)).map<IdMap<string>>(e => e ?? {}))
   await db.putAll(desc.name, data)
-  await db.putFetchInfo(desc.name)
+  const timestamp = await db.putFetchInfo(desc.name)
   desc.set(data)
+  store.dispatch(setFetchState([{ id: desc.name, timestamp: timestamp.toUTCString() }]))
+  return idMapping
 }
 
 async function fetchFioData<FioType = any>(url: string): Promise<FioType> {
@@ -196,7 +206,28 @@ type FetchInfo = {
   timestamp: Date
 }
 
+// TODO: maybe combine fetches & idMaps because there should be always the same number of entries (apart from not needing the map)
+const FETCHES_STORE = "fetches"
+const ID_MAP_STORE = "idMaps"
+
 class Idb {
+  static async open() {
+    return new Idb(await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("worldData", 1)
+      request.onupgradeneeded = (e) => {
+        const db = request.result;
+        if (e.oldVersion < 1) {
+          db.createObjectStore(FETCHES_STORE, { keyPath: "id" })
+          db.createObjectStore(ID_MAP_STORE)
+          for (const { name, id } of Object.values(idbStores))
+            db.createObjectStore(name, { keyPath: id })
+        }
+      }
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = reject
+    }))
+  }
+
   constructor(private readonly db: IDBDatabase) { }
 
   async get<T>(storeName: string, key: string): Promise<T | undefined> {
@@ -246,9 +277,15 @@ class Idb {
     return await this.get<FetchInfo>(FETCHES_STORE, id)
   }
   async putFetchInfo(id: string) {
-    await this.put<FetchInfo>(FETCHES_STORE, {
-      id,
-      timestamp: new Date()
-    })
+    const timestamp = new Date()
+    await this.put<FetchInfo>(FETCHES_STORE, { id, timestamp })
+    return timestamp
+  }
+
+  async getIdMap(key: string) {
+    return await this.get<IdMap<string>>(ID_MAP_STORE, key)
+  }
+  async putIdMap(key: string, object: IdMap<string>) {
+    await this.put(ID_MAP_STORE, object, key)
   }
 }
