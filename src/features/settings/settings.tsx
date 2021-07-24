@@ -1,8 +1,11 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import styles from "./settings.module.css"
-import { selectFetchState } from "../../world-data/world-data-slice"
+import { FetchState, selectFetchState } from "../../world-data/world-data-slice"
 import { isDevModeEnabled, setDevModeEnabled } from "./settings-slice"
 import { useAppDispatch } from "../../app/hooks"
+import { syncData } from "../fio/fio-get"
+
+const SYNC_ALLOWED_AFTER_SECONDS = 5 * 60 // TODO: move this to fio-get
 
 export function Settings() {
   const dispatch = useAppDispatch()
@@ -27,14 +30,26 @@ export function Settings() {
       dispatch(setDevModeEnabled(true))
   }
 
-  const first = fioDataState.map(info => new Date(info.timestamp)).reduce(function (a, b) { return a < b ? a : b; });
+  // TODO: in addition only allow synching if not currently during a sync
+  // TODO: not working to enable button again after timer elapsed
+  // TODO: button should immediately be disabled when pressing sync button
+  const [syncDisallowed, setSyncDisallowed] = useState(() => calculateSyncDisallowed(fioDataState))
+  useEffect(() => {
+    const timer = setTimeout(() => { setSyncDisallowed(calculateSyncDisallowed(fioDataState)) }, 60 * 1000)
+    return () => clearTimeout(timer)
+  }, [fioDataState])
+
   return (<table className={styles.table}>
     <tbody>
       <tr className={styles.header} onClick={handleHiddenDevModeEnable}><td colSpan={2}>Fio Data</td></tr>
       {fioDataState.map(info => <tr key={info.id}><td>{info.id}</td><td>{new Date(info.timestamp).toLocaleString(undefined, {})}</td></tr>)}
-      <tr><td colSpan={2}><button onClick={() => { }} disabled={true}>Sync Fio Data</button></td></tr>
+      <tr><td colSpan={2}><button onClick={syncData} disabled={syncDisallowed}>Sync Fio Data</button></td></tr>
       {devSettings}
-      <tr><td colSpan={2}>{first.toUTCString()}</td></tr>
     </tbody>
   </table>)
+}
+
+function calculateSyncDisallowed(fioDataState: FetchState[]) {
+  const now = Date.now()
+  return fioDataState.some(info => (now - new Date(info.timestamp).getTime())/1000 < SYNC_ALLOWED_AFTER_SECONDS);
 }

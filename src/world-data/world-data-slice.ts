@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { useAppSelector } from "../app/hooks";
+import { isEmpty } from "../features/utils/utils";
 import { Material, Building, Planet, System, BuildingType, Sector } from "./world-data";
 
 export type IdMap<T> = Record<string, T>
@@ -136,6 +137,11 @@ export function selectPlanets() {
 }
 export function selectSystems() {
   return useAppSelector(state => state.worldData.system.data)
+}
+
+type DataTypes = "material" | "building" | "planet" | "system"
+export function hasData(types: DataTypes[]) {
+  return useAppSelector(state => types.every(type => !isEmpty(state.worldData[type].data)))
 }
 
 export function selectPlanetsPerSystem() {

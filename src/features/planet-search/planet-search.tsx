@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { getPlanetMaterials, PlanetResource, System } from "../../world-data/world-data"
-import { IdMap, selectMaterials, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
+import { hasData, IdMap, selectMaterials, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
@@ -54,6 +54,11 @@ const test = "📉📈💰"
 const additionalBuildingMaterials = ["MCG", "AEF", "SEA", "HSE", "INS", "TSH", "MGC", "BL"]
 
 export function PlanetSearch() {
+  if (!hasData(["material", "system", "planet"]))
+    return <Loading />
+  return <PlanetSearchInternal />
+}
+function PlanetSearchInternal() {
   const systems = selectSystems()
   const { planets, planetsPerSystem } = selectPlanetsPerSystem()
 
@@ -183,10 +188,6 @@ export function PlanetSearch() {
     }, {} as Record<string, string[]>)
     return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }));
   }, [materials])
-
-
-  if (isEmpty(planets) || isEmpty(systems))
-    return <Loading />
 
   return <div>
     {/* <SortableTable /> */}

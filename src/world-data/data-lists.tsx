@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { selectBuildings, selectMaterials, selectPlanets, selectSystems } from './world-data-slice';
 
 export enum List {
   buildings,
@@ -14,27 +15,31 @@ function listName(list: List): string {
 
 type ListData = string[][]
 
-// const listGetter: Record<List, () => ListData> = {
-//   [List.buildings]: () => id(worldData.buildings),
-//   [List.materials]: () => id(worldData.materials),
-//   [List.planets]: () => Object.entries(worldData.planets).map(([id, planet]) => [id, planet.name]),
-//   [List.systems]: () => Object.entries(worldData.systems).map(([id, system]) => [id, system.name]),
-// }
+const listGetter: Record<List, () => ListData> = {
+  [List.buildings]: () => id(selectBuildings()),
+  [List.materials]: () => id(selectMaterials()),
+  [List.planets]: () => idName(selectPlanets()),
+  [List.systems]: () => idName(selectSystems()),
+}
 
 function id(map: Record<string, { id: string }>): ListData {
   return Object.keys(map).map(id => [id, id]);
 }
 
+function idName(map: Record<string, { id: string, name: string }>): ListData {
+  return Object.values(map).map(({ id, name }) => [id, name]);
+}
+
 function DataList({ id, list }: { id: string, list: ListData }) {
   return <datalist id={id}>
-    {/* {list.map(([id, name]) => <option value={id} key={name}>{name}</option>)} */}
+    {list.map(([id, name]) => <option value={id} key={name}>{name}</option>)}
   </datalist>
 }
 
 export default function DataLists() {
   const keys = Object.keys(List).filter(k => typeof List[k as any] === "number").map(k => List[k as any]) as unknown as List[];
   return <>
-    {keys.map(list => <DataList key={listName(list)} id={listName(list)} list={[]/*listGetter[list]()*/} />)}
+    {keys.map(list => <DataList key={listName(list)} id={listName(list)} list={listGetter[list]()} />)}
   </>
 }
 
@@ -57,7 +62,7 @@ export function DataListSelector({ list, onSelect }: { list: List, onSelect?: (i
       e.preventDefault()
       // const d = listValidate[list](current)
       // if (d != current)
-      // setCurrent(d)
+      //   setCurrent(d)
       apply()
     }
   }} />

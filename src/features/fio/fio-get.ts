@@ -165,6 +165,20 @@ export async function initDb() {
   ])
 }
 
+export async function syncData() {
+  const db = await Idb.open()
+  const materials = load(db, materialsDesc)
+  const buildings = load(db, buildingsDesc)
+  const systems = load(db, systemsDesc)
+  const planets = load(db, planetsDesc, [systems, materials])
+  await Promise.all([
+    materials,
+    buildings,
+    systems,
+    planets,
+  ])
+}
+
 async function loadInitial<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>, dependencies: Promise<IdMap<string> | undefined>[] = []) {
   if (await db.getFetchInfo(desc.name)) {
     desc.set(await db.getAll<AppType>(desc.name))
