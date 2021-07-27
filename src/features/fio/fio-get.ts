@@ -191,15 +191,17 @@ async function loadInitial<FioType, AppType>(db: Idb, desc: StoreDescriptor<FioT
 }
 async function load<FioType extends Record<string, any>, AppType>(db: Idb, desc: StoreDescriptor<FioType, AppType>, dependencies: Promise<IdMap<string> | undefined>[] = []) {
   const fioData = await fetchFioData<FioType[]>(desc.path)
+  const data = desc.transform(fioData, (await Promise.all(dependencies)).map<IdMap<string>>(e => e ?? {}))
+  const tx = db.modify(desc.name)
+  tx.putAll(data)
   let idMapping: IdMap<string> | undefined
   if (desc.internalIdMapping) {
     const im = desc.internalIdMapping
     idMapping = fioData.reduce((acc, entry) => ({ ...acc, [entry[im.internalId]]: entry[im.id] }), {} as IdMap<string>)
-    await db.putIdMap(desc.name, idMapping)
+    tx.putIdMap(desc.name, idMapping)
   }
-  const data = desc.transform(fioData, (await Promise.all(dependencies)).map<IdMap<string>>(e => e ?? {}))
-  await db.putAll(desc.name, data)
-  const timestamp = await db.putFetchInfo(desc.name)
+  const timestamp = tx.putFetchInfo(desc.name)
+  await tx.finish()
   desc.set(data)
   store.dispatch(setFetchState([{ id: desc.name, timestamp: timestamp.toUTCString() }]))
   return idMapping
@@ -301,5 +303,33 @@ class Idb {
   }
   async putIdMap(key: string, object: IdMap<string>) {
     await this.put(ID_MAP_STORE, object, key)
+  }
+
+  modify(storeName: string) {
+    const storeNames = [storeName, ID_MAP_STORE, FETCHES_STORE]
+    const transaction = this.db.transaction(storeNames, "readwrite")
+    return new Transaction(transaction, storeNames.map(name => transaction.objectStore(name)))
+  }
+}
+
+class Transaction {
+  constructor(private readonly transaction: IDBTransaction, private readonly stores: IDBObjectStore[]) {
+  }
+
+  async finish() {
+    await new Promise<void>(resolve => this.transaction.oncomplete = () => resolve())
+  }
+  putAll<T>(objects: T[]) {
+    this.stores[0].clear()
+    for (const object of objects)
+      this.stores[0].put(object)
+  }
+  putIdMap(key: string, object: IdMap<string>) {
+    this.stores[1].put(object, key)
+  }
+  putFetchInfo(id: string) {
+    const timestamp = new Date()
+    this.stores[2].put({ id, timestamp })
+    return timestamp
   }
 }

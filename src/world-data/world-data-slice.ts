@@ -43,11 +43,13 @@ const WorldDataSlice = createSlice({
   initialState,
   reducers: {
     setFetchState(state, action: PayloadAction<FetchState[]>) {
+      state.fetchState = {}
       const obj = state.fetchState
       for (const o of action.payload)
         obj[o.id] = o.timestamp
     },
     setMaterials(state, action: PayloadAction<Material[]>) {
+      state.material = { data: {}, byCategory: {} }
       const obj = state.material
       for (const o of action.payload) {
         obj.data[o.id] = o
@@ -55,6 +57,7 @@ const WorldDataSlice = createSlice({
       }
     },
     setBuildings(state, action: PayloadAction<Building[]>) {
+      state.building = { data: {}, byType: Object.keys(BuildingType).reduce((acc, val) => ({ ...acc, [val]: [] }), {} as Record<BuildingType, string[]>) }
       const obj = state.building
       for (const o of action.payload) {
         obj.data[o.id] = o
@@ -87,6 +90,7 @@ const WorldDataSlice = createSlice({
 
     },
     setPlanets(state, action: PayloadAction<Planet[]>) {
+      state.planet = { data: {}, bySystem: {} }
       const obj = state.planet
       for (const o of action.payload) {
         obj.data[o.id] = o
@@ -103,6 +107,7 @@ const WorldDataSlice = createSlice({
       //   }
     },
     setSystems(state, action: PayloadAction<System[]>) {
+      state.system = { data: {}, byName: {} }
       const obj = state.system
       for (const o of action.payload) {
         obj.data[o.id] = o
