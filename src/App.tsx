@@ -1,6 +1,6 @@
 import React from "react"
 import { Redirect, Route, Switch, useHistory, useLocation } from "react-router-dom"
-import "./App.css"
+import styles from "./App.module.css"
 // import { BaseScreen } from './features/bases/base-screen'
 import { PlanetSearch } from "./features/planet-search/planet-search"
 // import { RoiList } from './features/roi/roi'
@@ -28,23 +28,19 @@ function App() {
   return (<>
     <DataLists />
 
-    <div className="App">
-      <div className="body">
-        <div className="main">
-          <TabHeader tabs={pages2} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
-          <Switch>
-            {pages.map(page => {
-              const Content = page.content
-              return (<Route exact path={"/" + page.id}>
-                <Content />
-              </Route>)
-            })}
-            <Route exact path="/">
-              <Redirect to={"/" + pages[0].id} />
-            </Route>
-          </Switch>
-        </div>
-      </div>
+    <div className={styles.App}>
+      <TabHeader tabs={pages2} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
+      <Switch>
+        {pages.map(page => {
+          const Content = page.content
+          return (<Route exact path={"/" + page.id}>
+            <Content />
+          </Route>)
+        })}
+        <Route exact path="/">
+          <Redirect to={"/" + pages[0].id} />
+        </Route>
+      </Switch>
     </div >
   </>)
 }
