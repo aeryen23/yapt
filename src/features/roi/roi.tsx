@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react"
-import { Building, BuildingType, Commodities, WorkforceLevel, worldData } from "../../world-data/world-data"
+import { Building, BuildingType, Commodities, WorkforceLevel } from "../../world-data/world-data"
+import { CONSUMABLES_BY_WORKFORCE } from "../bases/consumption"
 import { PriceInfo, useFetchPricesQuery } from "../fio/fio-api-slice"
 import { numberForUser } from "../utils/utils"
 
@@ -61,51 +62,6 @@ function calcHabPerWorkforceCosts(planetId: string, prices: Record<string, numbe
   return minimumCosts
 }
 
-const CONSUMABLES_BY_WORKFORCE: Record<WorkforceLevel, Record<string, number>> = {
-  Pioneers: {
-    DW: 4,
-    RAT: 4,
-    OVE: 0.5,
-    PWO: 0.2,
-    COF: 0.5,
-  },
-  Settlers: {
-    DW: 5,
-    RAT: 6,
-    EXO: 0.5,
-    PT: 0.5,
-    REP: 0.2,
-    KOM: 1,
-  },
-  Technicians: {
-    DW: 7.5,
-    RAT: 7,
-    MED: 0.5,
-    HMS: 0.5,
-    SCN: 0.1,
-    SC: 0.1,
-    ALE: 1,
-  },
-  Engineers: {
-    DW: 10,
-    MED: 0.5,
-    FIM: 7,
-    HSS: 0.1,
-    PDA: 0.2,
-    VG: 0.2,
-    GIN: 0.1,
-  },
-  Scientists: {
-    DW: 10,
-    MED: 0.5,
-    MEA: 7,
-    LC: 0.2,
-    WS: 0.1,
-    NST: 0.1,
-    WIN: 1,
-  }
-}
-
 // TODO: calculate materials used + then calc price separate, so used materials can be shown for labor cost tooltip
 function calcLaborMaterials(building: Building, luxury: Record<string, boolean>) {
   // TODO: hab-factor (-> not enough workforce)
@@ -159,13 +115,13 @@ export function RoiList() {
   const relevantBuildings = [...worldData.buildingCategories[BuildingType.RESOURCES], ...worldData.buildingCategories[BuildingType.PRODUCTION]]
   const buildingCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcBuildingCosts(worldData.buildings[bId], planet, prices) }), {} as Record<string, number>),
-  [prices, planet])
+    [prices, planet])
   const habCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: Object.entries(worldData.buildings[bId].workforce).reduce((sum, [type, amount]) => sum + habPerWorkforceCosts[type] * amount, 0) }), {} as Record<string, number>),
-  [prices, planet])
+    [prices, planet])
   const consumableCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcLaborCosts(worldData.buildings[bId], prices, usableConsumables) }), {} as Record<string, number>),
-  [prices, usableConsumables])
+    [prices, usableConsumables])
 
 
   if (isLoading)
@@ -244,7 +200,7 @@ function showDuration(durationMs: number) {
     result += " " + hours + " h"
   if (remainingMinutes)
     result += " " + remainingMinutes + " m"
-  return result.trim()
+  return result.trim();
 }
 
 function PlanetInput({ value, onChange }: { value: string, onChange: (planet: string) => void }) {
