@@ -11,14 +11,15 @@ import { Settings } from './features/settings/settings'
 import { isDevModeEnabled } from './features/settings/settings-slice'
 
 const pages: (TabDefinition & { hidden?: boolean })[] = [
-  { title: "Search planets", content: PlanetSearch },
-  { title: "Basecount", content: PlayerBaseStatistics },
+  { id: "planetsearch", title: "Search planets", content: PlanetSearch },
+  { id: "basecount", title: "Basecount", content: PlayerBaseStatistics },
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },
-  { title: "⚙️", content: Settings },
+  { id: "settings", title: "⚙️", content: Settings },
 ]
 
+// TODO: use HashRouter stuff to have separate urls for tabs
 function App() {
   const pages2 = isDevModeEnabled() ? pages : pages.filter(p => !p.hidden)
   const head = null
