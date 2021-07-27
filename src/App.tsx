@@ -1,5 +1,5 @@
 import React from "react"
-import { Route, Switch } from "react-router-dom"
+import { Redirect, Route, Switch, useHistory, useLocation } from "react-router-dom"
 import "./App.css"
 // import { BaseScreen } from './features/bases/base-screen'
 import { PlanetSearch } from "./features/planet-search/planet-search"
@@ -20,21 +20,27 @@ const pages: (TabDefinition & { hidden?: boolean })[] = [
   { id: "settings", title: "⚙️", content: Settings },
 ]
 
-// TODO: use HashRouter stuff to have separate urls for tabs
 function App() {
   const pages2 = isDevModeEnabled() ? pages : pages.filter(p => !p.hidden)
-  const head = null
+  const history = useHistory()
+  const currentTab = useLocation().pathname.substr(1)
+
   return (<>
     <DataLists />
 
     <div className="App">
       <div className="body">
-        {head}
         <div className="main">
-          <TabHeader tabs={pages2} currentTab="planetsearch" setCurrentTab={()=>{/**/}} />
+          <TabHeader tabs={pages2} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
           <Switch>
-            <Route exact path="">
-
+            {pages.map(page => {
+              const Content = page.content
+              return (<Route exact path={"/" + page.id}>
+                <Content />
+              </Route>)
+            })}
+            <Route exact path="/">
+              <Redirect to={"/" + pages[0].id} />
             </Route>
           </Switch>
         </div>
@@ -44,3 +50,7 @@ function App() {
 }
 
 export default App
+
+function Statistics() {
+  // TODO use nested routing and list PlayerBaseStatistics here
+}

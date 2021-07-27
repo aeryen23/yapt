@@ -24,7 +24,7 @@ export function TabHeader({ tabs, currentTab, setCurrentTab }: { tabs: TabDefini
     {tabs.map(def => {
       const active = def.id == currentTab
       return (<div className={styles.header} key={def.id}>
-        <a className={(active ? styles.tabActive + " " : "") + styles.tab} onClick={() => { setCurrentTab(def.id); console.log("tab", def.id) }}>
+        <a className={(active ? styles.tabActive + " " : "") + styles.tab} onClick={() => { setCurrentTab(def.id) }}>
           {def.title ?? def.id}
         </a>
         <div className={(active ? styles.toggleIndicatorActive + " " : "") + styles.toggleIndicator} />
