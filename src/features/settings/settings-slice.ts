@@ -1,5 +1,5 @@
-import { combineReducers, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { useAppSelector } from "../../app/hooks";
+import { combineReducers, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { useAppSelector } from "../../app/hooks"
 // import bases from "../bases/bases-slice";
 
 const devModeSlice = createSlice({

@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
-import { selectBuildings, selectMaterials, selectPlanets, selectSystems } from './world-data-slice';
+import React, { useState } from "react"
+import { selectBuildings, selectMaterials, selectPlanets, selectSystems } from "./world-data-slice"
 
 export enum List {
   buildings,
   materials,
   planets,
   systems,
-};
+}
 
 const LIST_PREFIX = "LIST_"
 function listName(list: List): string {
-  return LIST_PREFIX + List[list];
+  return LIST_PREFIX + List[list]
 }
 
 type ListData = string[][]
@@ -23,11 +23,11 @@ const listGetter: Record<List, () => ListData> = {
 }
 
 function id(map: Record<string, { id: string }>): ListData {
-  return Object.keys(map).map(id => [id, id]);
+  return Object.keys(map).map(id => [id, id])
 }
 
 function idName(map: Record<string, { id: string, name: string }>): ListData {
-  return Object.values(map).map(({ id, name }) => [id, name]);
+  return Object.values(map).map(({ id, name }) => [id, name])
 }
 
 function DataList({ id, list }: { id: string, list: ListData }) {
@@ -37,7 +37,7 @@ function DataList({ id, list }: { id: string, list: ListData }) {
 }
 
 export default function DataLists() {
-  const keys = Object.keys(List).filter(k => typeof List[k as any] === "number").map(k => List[k as any]) as unknown as List[];
+  const keys = Object.keys(List).filter(k => typeof List[k as any] === "number").map(k => List[k as any]) as unknown as List[]
   return <>
     {keys.map(list => <DataList key={listName(list)} id={listName(list)} list={listGetter[list]()} />)}
   </>

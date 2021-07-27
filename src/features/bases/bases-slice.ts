@@ -1,6 +1,6 @@
-import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
-import { useAppSelector } from "../../app/hooks";
-import { RootState } from "../../app/store";
+import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit"
+import { useAppSelector } from "../../app/hooks"
+import { RootState } from "../../app/store"
 
 export interface Base {
   id: string,
@@ -83,7 +83,7 @@ const BasesSlice = createSlice({
 export const { add, remove, select, addBuilding, removeBuilding } = BasesSlice.actions
 export default BasesSlice.reducer
 
-function generateId() { return nanoid(); }
+function generateId() { return nanoid() }
 
 function makeEmptyBase(planet: string): Base {
   return { id: generateId(), planet, buildings: {} }

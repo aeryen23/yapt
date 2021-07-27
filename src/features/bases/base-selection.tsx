@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
-import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { add, currentBase, select } from './bases-slice'
-import styles from './base-selection.module.css'
-import { distinctStable } from '../utils/utils'
+import React, { useState } from "react"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { distinctStable } from "../utils/utils"
+import { add, currentBase, select } from "./bases-slice"
+import styles from "./base-selection.module.css"
 
 function Selection({ names, ids, selectedId, onSelect }: { names: string[], ids?: string[], selectedId?: string, onSelect: (id: string) => void }) {
   return <div style={{ display: "flex", flexDirection: "row" }}>

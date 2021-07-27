@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react"
-import styles from "./settings.module.css"
 import { FetchState, selectFetchState } from "../../world-data/world-data-slice"
-import { isDevModeEnabled, setDevModeEnabled } from "./settings-slice"
 import { useAppDispatch } from "../../app/hooks"
 import { syncData } from "../fio/fio-get"
+import { isDevModeEnabled, setDevModeEnabled } from "./settings-slice"
+import styles from "./settings.module.css"
 
 const SYNC_ALLOWED_AFTER_SECONDS = 5 * 60 // TODO: move this to fio-get
 
 export function Settings() {
   const dispatch = useAppDispatch()
   const fioDataState = selectFetchState()
-  let devSettings;
+  let devSettings
   if (isDevModeEnabled()) {
     devSettings = <>
       <tr className={styles.header}><td colSpan={2}><label><input type="checkbox" checked={true} onChange={() => dispatch(setDevModeEnabled(false))}></input>Dev Mode active</label></td></tr>
@@ -51,5 +51,5 @@ export function Settings() {
 
 function calculateSyncDisallowed(fioDataState: FetchState[]) {
   const now = Date.now()
-  return fioDataState.some(info => (now - new Date(info.timestamp).getTime())/1000 < SYNC_ALLOWED_AFTER_SECONDS);
+  return fioDataState.some(info => (now - new Date(info.timestamp).getTime())/1000 < SYNC_ALLOWED_AFTER_SECONDS)
 }

@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
-import { useBasecountQuery } from "../fio/fio-api-slice";
-import styles from "./chart.module.css";
+import React, { useMemo } from "react"
+import { useBasecountQuery } from "../fio/fio-api-slice"
+import styles from "./chart.module.css"
 
 type Entry = { baseCount: number, companies: string[] }
 export function PlayerBaseStatistics() {
@@ -35,7 +35,7 @@ export function PlayerBaseStatistics() {
     const barHeight = 30
     const avgValue =  processedData.length>0 ? processedData.reduce((sum, a) => sum+a.companies.length, 0) / processedData.length : 1
     const advance = Math.trunc(width / avgValue)
-    let barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
+    const barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
       <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />
     </g>)
     return (<svg width={width + 20} height="300" >
@@ -55,12 +55,12 @@ export function PlayerBaseStatistics() {
 }
 
 function BarGroup({ data, barHeight, maxWidth, advance = 10 }: { data: { name: string, value: number, title: string }, barHeight: number, maxWidth: number, advance?: number }) {
-  let barPadding = 2
-  let barColour = '#348AA7'
-  let widthScale = (d: number) => d * advance
+  const barPadding = 2
+  const barColour = "#348AA7"
+  const widthScale = (d: number) => d * advance
 
-  let width = Math.min(Math.max(widthScale(data.value), 20), maxWidth)
-  let yMid = barHeight * 0.5
+  const width = Math.min(Math.max(widthScale(data.value), 20), maxWidth)
+  const yMid = barHeight * 0.5
 
   return (<g className={styles["bar-group"]}>
     <text className={styles["name-label"]} x="-6" y={yMid} alignmentBaseline="middle" >{data.name}</text>

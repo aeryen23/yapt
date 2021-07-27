@@ -1,8 +1,8 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { useMemo } from "react";
-import { useAppSelector } from "../app/hooks";
-import { isEmpty } from "../features/utils/utils";
-import { Material, Building, Planet, System, BuildingType, Sector } from "./world-data";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { useMemo } from "react"
+import { useAppSelector } from "../app/hooks"
+import { isEmpty } from "../features/utils/utils"
+import { Material, Building, Planet, System, BuildingType, Sector } from "./world-data"
 
 export type IdMap<T> = Record<string, T>
 export type FetchState = {
@@ -151,7 +151,7 @@ export function selectPlanetsPerSystem() {
     const result: Record<string, string[]> = Object.keys(systems).reduce((acc, system) => ({ ...acc, [system]: [] }), {})
     for (const [id, planet] of Object.entries(planets))
       add(result, planet.system, id)
-    return result;
+    return result
   }, [planets, systems])
   return { planets, planetsPerSystem }
 }

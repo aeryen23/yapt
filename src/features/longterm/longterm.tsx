@@ -1,19 +1,19 @@
-import React, { useMemo, useState } from "react";
-import { worldData, Recipe } from "../../world-data/world-data";
+import React, { useMemo, useState } from "react"
+import { worldData, Recipe } from "../../world-data/world-data"
 
 let _recipes: {
   byId: Record<string, { recipe: Recipe, building: string }>;
   byOutput: Record<string, string[]>;
-} | undefined;
+} | undefined
 function getRecipes() {
   if (!_recipes) {
     _recipes = {
       byId: {},
       byOutput: {},
-    };
+    }
     for (const building of worldData.buildingCategories.PRODUCTION) {
       for (const [idx, recipe] of worldData.buildings[building].recipes.entries()) {
-        const recipeId = building + idx;
+        const recipeId = building + idx
         _recipes.byId[recipeId] = { recipe, building }
         for (const output of Object.keys(recipe.outputs)) {
           if (!_recipes.byOutput[output])
@@ -38,7 +38,7 @@ export function LongtermPlanner() {
     console.log("demands", demandList)
     const queue = [...demandList]
     const nextQueue: string[] = []
-    const inserted = new Set();
+    const inserted = new Set()
     const used: Record<string, number> = {}
     const resources = Object.keys(worldData.planetMaxResources)
 
@@ -66,7 +66,7 @@ export function LongtermPlanner() {
       console.log("material", material, availableRecipes)
       if (!availableRecipes)
         continue // resources
-      const selectedRecipe = availableRecipes.length <= 1 ? availableRecipes[0] : selectedRecipes[material];
+      const selectedRecipe = availableRecipes.length <= 1 ? availableRecipes[0] : selectedRecipes[material]
       if (!selectedRecipe)
         continue // can't continue - either no recipe available or user has to select a recipe
       if (usedRecipes.has(selectedRecipe))
@@ -75,7 +75,7 @@ export function LongtermPlanner() {
       usedRecipes.set(selectedRecipe, material)
       for (const input of Object.keys(recipes.byId[selectedRecipe].recipe.inputs)) {
         if (inserted.has(input))
-          continue;
+          continue
         inserted.add(input)
         nextQueue.push(input)
       }

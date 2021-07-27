@@ -2,7 +2,7 @@
 export function distinctStable<T>(array: T[]): T[] {
   const result = []
   const s = new Set()
-  for (let v of array)
+  for (const v of array)
     if (!s.has(v)) {
       s.add(v)
       result.push(v)
@@ -10,7 +10,7 @@ export function distinctStable<T>(array: T[]): T[] {
   return result
 }
 
-export function numberForUser(v: Number, precision = 2): string {
+export function numberForUser(v: number, precision = 2): string {
   if (typeof v == "undefined")
     return "undefined"
   return v.toFixed(precision)

@@ -159,13 +159,13 @@ export function RoiList() {
   const relevantBuildings = [...worldData.buildingCategories[BuildingType.RESOURCES], ...worldData.buildingCategories[BuildingType.PRODUCTION]]
   const buildingCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcBuildingCosts(worldData.buildings[bId], planet, prices) }), {} as Record<string, number>),
-    [prices, planet])
+  [prices, planet])
   const habCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: Object.entries(worldData.buildings[bId].workforce).reduce((sum, [type, amount]) => sum + habPerWorkforceCosts[type] * amount, 0) }), {} as Record<string, number>),
-    [prices, planet])
+  [prices, planet])
   const consumableCosts = useMemo(() =>
     relevantBuildings.reduce((acc, bId) => ({ ...acc, [bId]: calcLaborCosts(worldData.buildings[bId], prices, usableConsumables) }), {} as Record<string, number>),
-    [prices, usableConsumables])
+  [prices, usableConsumables])
 
 
   if (isLoading)
@@ -244,7 +244,7 @@ function showDuration(durationMs: number) {
     result += " " + hours + " h"
   if (remainingMinutes)
     result += " " + remainingMinutes + " m"
-  return result.trim();
+  return result.trim()
 }
 
 function PlanetInput({ value, onChange }: { value: string, onChange: (planet: string) => void }) {

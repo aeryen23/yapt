@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
-import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { BuildingType, PlanetResource, WorkforceLevel, worldData } from '../../world-data/world-data'
-import { addBuilding, BaseBuilding, currentBase } from './bases-slice'
-import { numberForUser } from '../utils/utils'
-import styles from './base-screen.module.css'
-import { SelectBuilding } from '../../world-data/buildings'
-import BaseSelection from './base-selection'
+import React, { useState } from "react"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { BuildingType, PlanetResource, WorkforceLevel, worldData } from "../../world-data/world-data"
+import { numberForUser } from "../utils/utils"
+import { SelectBuilding } from "../../world-data/buildings"
+import { addBuilding, BaseBuilding, currentBase } from "./bases-slice"
+import styles from "./base-screen.module.css"
+import BaseSelection from "./base-selection"
 
 export function BaseScreen() {
   // const dispatch = useAppDispatch()

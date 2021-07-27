@@ -1,8 +1,8 @@
 
-import { store } from "../../app/store";
-import { FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types";
-import { Building, BuildingType, Material, Planet, Recipe, System, WorkforceLevel } from "../../world-data/world-data";
-import { IdMap, setBuildings, setFetchState, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice";
+import { store } from "../../app/store"
+import { Building, BuildingType, Material, Planet, Recipe, System, WorkforceLevel } from "../../world-data/world-data"
+import { IdMap, setBuildings, setFetchState, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice"
+import { FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types"
 
 type StoreDescriptor<FioType, AppType> = {
   name: string,
@@ -102,7 +102,7 @@ const planetsDesc: StoreDescriptor<FioPlanet, Planet> = {
       id: entry.PlanetNaturalId,
       name: entry.PlanetName,
       system: systemIdtoId[entry.SystemId],
-      resources: entry.Resources.map<Planet['resources'][0]>(r => ({
+      resources: entry.Resources.map<Planet["resources"][0]>(r => ({
         material: materialIdtoId[r.MaterialId],
         perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
         type: r.ResourceType,
@@ -208,8 +208,8 @@ async function load<FioType extends Record<string, any>, AppType>(db: Idb, desc:
 async function fetchFioData<FioType = any>(url: string): Promise<FioType> {
   const response = await fetch("https://rest.fnar.net" + url, {
     headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      "Content-Type": "application/json",
+      "Accept": "application/json"
     }
   })
   return await response.json()
@@ -229,7 +229,7 @@ class Idb {
     return new Idb(await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("worldData", 1)
       request.onupgradeneeded = (e) => {
-        const db = request.result;
+        const db = request.result
         if (e.oldVersion < 1) {
           db.createObjectStore(FETCHES_STORE, { keyPath: "id" })
           db.createObjectStore(ID_MAP_STORE)

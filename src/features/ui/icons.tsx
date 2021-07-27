@@ -1,6 +1,6 @@
 import React from "react"
-import styles from "./icons.module.css"
 import { selectMaterials } from "../../world-data/world-data-slice"
+import styles from "./icons.module.css"
 
 export function styleForMaterial(materialCategory: string) {
   const category = materialCategory?.replaceAll(" ", "_").replaceAll(/\(|\)/g, "")
@@ -25,7 +25,7 @@ export function Icon({ label, size = 48, fontFactor = 0.33, colorClass = styles.
     height: size,
     width: size,
     fontSize: size * fontFactor,
-    cursor: onClick ? 'pointer' : 'default'
+    cursor: onClick ? "pointer" : "default"
   }
   const classes = [styles.container, colorClass]
   if (isSelected)

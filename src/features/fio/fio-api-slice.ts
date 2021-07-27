@@ -1,6 +1,6 @@
-import { UseQuery } from '@reduxjs/toolkit/dist/query/react/buildHooks'
-import { createApi, fetchBaseQuery, QueryDefinition } from '@reduxjs/toolkit/query/react'
-import { FioShortPlanet } from './fio-types'
+import { UseQuery } from "@reduxjs/toolkit/dist/query/react/buildHooks"
+import { createApi, fetchBaseQuery, QueryDefinition } from "@reduxjs/toolkit/query/react"
+import { FioShortPlanet } from "./fio-types"
 
 export interface Planet {
   Resources: Resource[];
@@ -154,13 +154,13 @@ export interface CXOrder {
 }
 
 export const apiSlice = createApi({
-  reducerPath: 'api',
+  reducerPath: "api",
   baseQuery: fetchBaseQuery({ baseUrl: "https://rest.fnar.net" }),
   endpoints: (builder) => ({
     // TODO: instead get CX info -> prices
     fetchPlanets: builder.query<FioShortPlanet[], void>({
       query() {
-        return `/planet/allplanets`
+        return "/planet/allplanets"
       }
     }),
     fetchPlanet: builder.query<Resource[], string>({
@@ -179,13 +179,13 @@ export const apiSlice = createApi({
     }),
     fetchPrices: builder.query<PriceInfo[], void>({
       query() {
-        return `/rain/prices`
+        return "/rain/prices"
       },
       keepUnusedDataFor: 60 * 60 * 24 * 7, // 1 week for debugging TODO: reduce
     }),
     basecount: builder.query<{ CompanyCode: string; BaseCount: number; }[], void>({
       query() {
-        return `/planet/basecount`
+        return "/planet/basecount"
       },
       keepUnusedDataFor: 10 * 60
     }),

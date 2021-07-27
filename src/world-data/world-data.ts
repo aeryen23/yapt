@@ -2,7 +2,7 @@ import {
   FioBuilding, FioCommodityAmount, FactionCode,
   FioMaterial, FioPlanet, ResourceType, BuildingCategory,
   FioSystemStar, FioWorldSector, StarType, FioShortPlanet
-} from "../features/fio/fio-types";
+} from "../features/fio/fio-types"
 
 export function getPlanetMaterials(planet: Planet, area = 1) {
   // https://handbook.apex.prosperousuniverse.com/wiki/building-costs/
@@ -63,7 +63,7 @@ type ShortPlanet = {
 // TODO: split loading, type defs etc
 async function loadWorldData() {
 
-  let allBuildingIds = Object.keys(worldData.buildings)
+  const allBuildingIds = Object.keys(worldData.buildings)
   for (const type of Object.keys(BuildingType) as BuildingType[])
     worldData.buildingCategories[type] = allBuildingIds.filter(id => worldData.buildings[id].type == type)
 

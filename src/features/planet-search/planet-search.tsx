@@ -29,7 +29,7 @@ const materialTypeIcon: Record<ResourceType, string> = {
   "GASEOUS": "☁️",
 }
 
-const DOWN = "▼";
+const DOWN = "▼"
 
 const HEADERS = {
   Jumps: "#",
@@ -43,7 +43,7 @@ Rocky or Gaseous`]: "🪐",
 }
 const NUM_HEADERS = Object.keys(HEADERS).length
 
-const infrastructure = "🚧🏪🏦🏬🏛️🏗️";
+const infrastructure = "🚧🏪🏦🏬🏛️🏗️"
 // Local Market
 // Chamber of Commerce
 // Warehouse
@@ -72,7 +72,7 @@ function PlanetSearchInternal() {
 
   const cxDistances = useMemo(() =>
     Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
-    , [systems])
+  , [systems])
 
 
   const systemDistances = useMemo(() => {
@@ -100,7 +100,7 @@ function PlanetSearchInternal() {
           }
         }
         if (!hasAllBuildingCosts)
-          continue;
+          continue
         newResult.push({ planet: planetId, jumps })
       }
     }
@@ -122,7 +122,7 @@ function PlanetSearchInternal() {
           return getResourcePerDay(b.planet) - getResourcePerDay(a.planet)
         } else {
           const cxData = Object.values(cxDistances)[sortColumn - (NUM_HEADERS + materialFilter.length + 5)]!
-          function getJumps(planet: string) { return cxData.get(planets[planet].system)!; }
+          function getJumps(planet: string) { return cxData.get(planets[planet].system)! }
           return getJumps(a.planet) - getJumps(b.planet)
         }
         return 0
@@ -186,7 +186,7 @@ function PlanetSearchInternal() {
       acc[cat].push(mat)
       return acc
     }, {} as Record<string, string[]>)
-    return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }));
+    return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }))
   }, [materials])
 
   return <div>
@@ -327,7 +327,7 @@ function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
   let next = []
   let later = [startSystem]
   while (later.length) {
-    next = later;
+    next = later
     later = []
     while (next.length) {
       const checkId: string = next.pop()!
@@ -335,11 +335,11 @@ function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
       const check = systems[checkId]
       if (!check) {
         console.error("system not found", checkId, systems)
-        continue;
+        continue
       }
       for (const other of check.connections) {
         if (evaluated.has(other))
-          continue;
+          continue
         evaluated.set(other, jumps)
         later.push(other)
       }
