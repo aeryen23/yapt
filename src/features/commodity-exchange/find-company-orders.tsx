@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react"
 import styles from "./find-company-orders.module.css"
-import { CompanyCXOrder, useFindCompanyOrdersQuery } from "../fio/fio-api-slice"
+import { CompanyCXOrder, CompanyCXOrders, useFindCompanyOrdersQuery } from "../fio/fio-api-slice"
 import { numberForUser } from "../utils/utils"
 
 export function FindCompanyOrders() {
@@ -31,43 +31,61 @@ function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
   if (error)
     return <div>Error: {JSON.stringify(error)}</div>
 
-  const cx = Object.keys(orders).sort()
+  const orderyByCX = Object.keys(orders).sort()
+  return (<div className={styles.allCxOrders}>
+    {
+      orderyByCX.map(cx => {
+        const salesTotal = calcTotal(orders[cx], true)
+        const buysTotal = calcTotal(orders[cx], false)
 
-  return (<table className={styles.table}>
-    <tbody>
-      <tr>
-        <td>CX</td>
-        <td>Mat</td>
-        <td>Type</td>
-        <td>Amount</td>
-        <td>Limit</td>
-        <td>Value</td>
-      </tr>
-      {
-        cx.map(k =>
-          orders[k].map(o => {
-            const orderCount = o.buys.length + o.sells.length
-            const cxOrders = [
-              ...createOrderRow(o.sells, true),
-              ...createOrderRow(o.buys, false),
-            ]
-            const firstRow = <tr key={o.material + "." + k}><td rowSpan={orderCount}>{k}</td><td rowSpan={orderCount}>{o.material}</td>{cxOrders[0].flat()}</tr>
-            return [
-              firstRow,
-              ...cxOrders.slice(1).map((cxo, index) => <tr key={o.material + "." + k + index}>{cxo.flat()}</tr>)
-            ]
-          }).flat()
-        ).flat()
-      }
-    </tbody>
-  </table>)
+        return <div className={styles.cxOrders}>
+          {cx}
+          <table className={styles.table}>
+            <tbody>
+              <tr>
+                <td>Mat</td>
+                <td>Type</td>
+                <td>Quantity</td>
+                <td>Limit</td>
+                <td>Total</td>
+              </tr>
+              {
+                orders[cx].map(o => [
+                  ...createOrderRow(o.material, o.sells, true),
+                  ...createOrderRow(o.material, o.buys, false),
+                ]).flat()
+              }
+              {salesTotal > 0 && <tr className={styles.summary}>
+                <td colSpan={2}>Total Sales</td>
+                <td></td>
+                <td className={styles.orderSell} colSpan={2}>{numberForUser(salesTotal)}</td>
+              </tr>}
+              {buysTotal > 0 && <tr className={salesTotal > 0 ? "" : styles.summary}>
+                <td colSpan={2}>Total Buys</td>
+                <td></td>
+                <td className={styles.orderBuy} colSpan={2}>{numberForUser(buysTotal)}</td>
+              </tr>}
+            </tbody>
+          </table>
+        </div>
+      }).flat()
+    }
+  </div>)
 }
 
-function createOrderRow(orders: CompanyCXOrder[], isSell: boolean) {
-  return orders.map(({ amount, cost }, index) => [
-    ...(index == 0 ? [<td key="type" className={isSell ? styles.orderSell : styles.orderBuy} rowSpan={orders.length}>{isSell ? "SELL" : "BUY"}</td>] : []),
-    <td key="amount">{amount}</td>,
-    <td key="limit">{numberForUser(cost)}</td>,
-    <td key="value">{numberForUser(amount * cost)}</td>
-  ])
+function createOrderRow(material: string, orders: CompanyCXOrder[], isSell: boolean) {
+  const orderTypeStyle = isSell ? styles.orderSell : styles.orderBuy
+  const key = material + (isSell ? "S" : "B");
+  return orders.map(({ amount, cost }, index) => (<tr key={key + index} className={index == 0 ? styles.firstOfMaterial : ""}>
+    <td>{material}</td>
+    <td className={orderTypeStyle}>{isSell ? "SELL" : "BUY"}</td>
+    <td>{amount}</td>
+    <td className={orderTypeStyle}>{numberForUser(cost)}</td>
+    <td className={orderTypeStyle}>{numberForUser(amount * cost)}</td>
+  </tr>)
+  )
+}
+
+function calcTotal(orders: CompanyCXOrders[], isSell: boolean): number {
+  return orders.reduce((totalSum, order) => totalSum + (isSell ? order.sells : order.buys).reduce((sum, { amount, cost }) => sum + amount * cost, 0), 0)
 }

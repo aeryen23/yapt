@@ -1,16 +1,42 @@
+.allCxOrders {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.cxOrders {
+    padding: 0.5em;
+}
+
+.table {
+    border-collapse: collapse;
+}
+
 .table td {
     text-align: right;
     vertical-align: top;
 }
 
-.table td:first-child {
+.table td:nth-child(-n+2) {
     text-align: left;
 }
 
 .orderSell {
-    color: green;
+    color: #d9534f;
 }
 
 .orderBuy {
-    color: darkred;
+    color: #5cb85c;
+}
+
+.table tr.firstOfMaterial>td {
+    border-width: 1px 0 0 0;
+    border-style: solid;
+    border-color: rgb(43, 72, 90);
+}
+
+.table tr.summary>td {
+    border-width: 2px 0 0 0;
+    border-style: solid;
+    border-color: rgb(69, 116, 145);
 }
