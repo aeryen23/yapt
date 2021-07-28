@@ -153,6 +153,27 @@ export interface CXOrder {
   ItemCost: number;
 }
 
+export interface CompanyCXOrders {
+  material: string;
+  cx: string;
+  buys: CompanyCXOrder[];
+  sells: CompanyCXOrder[];
+}
+export interface CompanyCXOrder {
+  amount: number;
+  cost: number;
+}
+export interface CompanyCXOrdersFio {
+  Ticker: string;
+  Buys: CompanyCXOrderFio[];
+  Sells: CompanyCXOrderFio[];
+}
+export interface CompanyCXOrderFio {
+  Count: number;
+  Cost: number;
+}
+
+
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({ baseUrl: "https://rest.fnar.net" }),
@@ -189,6 +210,20 @@ export const apiSlice = createApi({
       },
       keepUnusedDataFor: 10 * 60
     }),
+    findCompanyOrders: builder.query<CompanyCXOrders[], string>({
+      query(companyCode) {
+        return `/exchange/orders/${companyCode}`
+      },
+      transformResponse(response: CompanyCXOrdersFio[]) {
+        return response.map(o => {
+          const [material, cx] = o.Ticker.split(".")
+          const m = (orders: CompanyCXOrderFio[], increasing: boolean) => orders.map(a => ({ amount: a.Count, cost: a.Cost })).
+            sort((a, b) => increasing ? b.cost - a.cost : a.cost - b.cost)
+          return { material, cx, buys: m(o.Buys, true), sells: m(o.Sells, false) }
+        })
+      },
+      keepUnusedDataFor: 10 * 60
+    }),
   }),
 })
 
@@ -197,3 +232,4 @@ const setDefaultPollingInterval = <T extends MyUseQuery>(fn: T, interval = 30 * 
 
 export const { useFetchPlanetQuery, useFetchPricesQuery } = apiSlice
 export const useBasecountQuery = setDefaultPollingInterval(apiSlice.useBasecountQuery)
+export const useFindCompanyOrdersQuery = setDefaultPollingInterval(apiSlice.useFindCompanyOrdersQuery)

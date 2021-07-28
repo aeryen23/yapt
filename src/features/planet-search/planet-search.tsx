@@ -199,7 +199,7 @@ function PlanetSearchInternal() {
           return
         }
         const jumps = parseInt(e.target.value, 10)
-        if (jumps >= 0 && jumps < 100)
+        if (jumps >= 0 && jumps <= 100)
           setMaxJumps(jumps)
       }} />
     </div>

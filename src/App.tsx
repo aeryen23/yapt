@@ -10,6 +10,7 @@ import { PlayerBaseStatistics } from "./features/bases/player-base-statistics"
 import { TabDefinition, TabHeader } from "./features/ui/tabs"
 import { Settings } from "./features/settings/settings"
 import { isDevModeEnabled } from "./features/settings/settings-slice"
+import { FindCompanyOrders } from "./features/commodity-exchange/find-company-orders"
 
 const pages: (TabDefinition & { hidden?: boolean })[] = [
   { id: "planetsearch", title: "Search planets", content: PlanetSearch },
@@ -17,6 +18,7 @@ const pages: (TabDefinition & { hidden?: boolean })[] = [
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },
+  { id:"find-company-orders", title: "Find Company Orders", content: FindCompanyOrders, hidden: true },
   { id: "settings", title: "⚙️", content: Settings },
 ]
 

@@ -1,0 +1,16 @@
+.table td {
+    text-align: right;
+    vertical-align: top;
+}
+
+.table td:first-child {
+    text-align: left;
+}
+
+.orderSell {
+    color: green;
+}
+
+.orderBuy {
+    color: darkred;
+}
