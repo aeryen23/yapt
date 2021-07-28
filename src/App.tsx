@@ -9,21 +9,24 @@ import DataLists from "./world-data/data-lists"
 import { PlayerBaseStatistics } from "./features/bases/player-base-statistics"
 import { TabDefinition, TabHeader } from "./features/ui/tabs"
 import { Settings } from "./features/settings/settings"
-import { isDevModeEnabled } from "./features/settings/settings-slice"
+import { isDevModeEnabled, isExperimentalMode } from "./features/settings/settings-slice"
 import { FindCompanyOrders } from "./features/commodity-exchange/find-company-orders"
 
-const pages: (TabDefinition & { hidden?: boolean })[] = [
+const pages: (TabDefinition & { experimental?: boolean, hidden?: boolean })[] = [
   { id: "planetsearch", title: "Search planets", content: PlanetSearch },
-  { id: "basecount", title: "Basecount", content: PlayerBaseStatistics },
+  { id: "basecount", title: "Basecount", content: PlayerBaseStatistics, hidden: true },
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },
-  { id:"find-company-orders", title: "Find Company Orders", content: FindCompanyOrders, hidden: true },
+  { id: "find-company-orders", title: "Find Company Orders", content: FindCompanyOrders, experimental: true },
   { id: "settings", title: "⚙️", content: Settings },
 ]
 
 function App() {
-  const pages2 = isDevModeEnabled() ? pages : pages.filter(p => !p.hidden)
+  const isDev = isDevModeEnabled()
+  const isExperimental = isExperimentalMode()
+  const usablePages = isDev ? pages : pages.filter(p => !p.hidden)
+  const visiblePages = isExperimental || isDev ? usablePages : usablePages.filter(p => !p.experimental)
   const history = useHistory()
   const currentTab = useLocation().pathname.substr(1)
 
@@ -31,16 +34,16 @@ function App() {
     <DataLists />
 
     <div className={styles.App}>
-      <TabHeader tabs={pages2} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
+      <TabHeader tabs={visiblePages} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
       <Switch>
-        {pages.map(page => {
+        {usablePages.map(page => {
           const Content = page.content
-          return (<Route exact path={"/" + page.id}>
+          return (<Route key={page.id} exact path={"/" + page.id}>
             <Content />
           </Route>)
         })}
         <Route exact path="/">
-          <Redirect to={"/" + pages[0].id} />
+          <Redirect to={"/" + visiblePages[0].id} />
         </Route>
       </Switch>
     </div >

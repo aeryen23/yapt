@@ -29,7 +29,7 @@ function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
   if (isLoading)
     return <div>Loading</div>
   if (error)
-    return <div>Error: ${error}</div>
+    return <div>Error: {JSON.stringify(error)}</div>
 
   const cx = Object.keys(orders).sort()
 

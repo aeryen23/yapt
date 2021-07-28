@@ -3,22 +3,31 @@ import { useAppSelector } from "../../app/hooks"
 // import bases from "../bases/bases-slice";
 
 const devModeSlice = createSlice({
-  name: "devMode",
-  initialState: false,
+  name: "mode",
+  initialState: {
+    experimental: false,
+    dev: false
+  },
   reducers: {
-    set(state, action: PayloadAction<boolean>) {
-      return action.payload
+    setExperimentalMode(state, action: PayloadAction<boolean>) {
+      state.experimental = action.payload
+    },
+    setDevModeEnabled(state, action: PayloadAction<boolean>) {
+      state.dev = action.payload
     },
   }
 })
 
-export const { set: setDevModeEnabled } = devModeSlice.actions
+export const { setExperimentalMode, setDevModeEnabled } = devModeSlice.actions
 
+export function isExperimentalMode() {
+  return useAppSelector(state => state.settings.mode.experimental)
+}
 export function isDevModeEnabled() {
-  return useAppSelector(state => state.settings.devMode)
+  return useAppSelector(state => state.settings.mode.dev)
 }
 
 export default combineReducers({
-  devMode: devModeSlice.reducer,
+  mode: devModeSlice.reducer,
   // bases,
 })

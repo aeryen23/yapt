@@ -25,7 +25,7 @@ export function PlayerBaseStatistics() {
   if (isLoading)
     return <div>Loading</div>
   if (error)
-    return <div>Error: ${error}</div>
+    return <div>Error: {JSON.stringify(error)}</div>
 
   const sorted = [...data!]
   sorted.sort((a, b) => b.BaseCount - a.BaseCount)
