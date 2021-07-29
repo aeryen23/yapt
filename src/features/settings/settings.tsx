@@ -13,7 +13,7 @@ export function Settings() {
   let devSettings
   if (isDevModeEnabled()) {
     devSettings = <>
-      <tr className={styles.header}><td colSpan={2}><label><input type="checkbox" checked={true} onChange={() => dispatch(setDevModeEnabled(false))}></input>Dev Mode active</label></td></tr>
+      <tr><td colSpan={2}><label><input type="checkbox" checked={true} onChange={() => dispatch(setDevModeEnabled(false))}></input>Dev Mode active</label></td></tr>
     </>
   }
   const hiddenDevModeEnableState = {
@@ -30,14 +30,12 @@ export function Settings() {
       dispatch(setDevModeEnabled(true))
   }
 
-
   return (<table className={styles.table}>
     <tbody>
-      <tr className={styles.header} onClick={handleHiddenDevModeEnable}><td colSpan={2}>Fio Data</td></tr>
+      <tr className={styles.header}><td colSpan={2}>Fio Data</td></tr>
       <FioState />
-      <tr className={styles.header}>
-        <td colSpan={2}><label><input type="checkbox" checked={isExperimental} onChange={e => dispatch(setExperimentalMode(e.target.checked))}></input>Experimental Mode</label></td>
-      </tr>
+      <tr className={styles.header} onClick={handleHiddenDevModeEnable}><td colSpan={2}>Settings</td></tr>
+      <tr><td colSpan={2}><label><input type="checkbox" checked={isExperimental} onChange={e => dispatch(setExperimentalMode(e.target.checked))}></input>Experimental Mode</label></td></tr>
       {devSettings}
     </tbody>
   </table>)
