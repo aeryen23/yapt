@@ -4,11 +4,11 @@ import styles from "./chart.module.css"
 
 type Entry = { baseCount: number, companies: string[] }
 export function PlayerBaseStatistics() {
-  const { data, error, isLoading } = useBasecountQuery()
+  const { data, error, isFetching } = useBasecountQuery()
 
   const processedData = useMemo(() => {
     const result = [] as Entry[]
-    if (!isLoading && !error) {
+    if (data) {
       const result2 = data!.reduce((acc, { CompanyCode, BaseCount }) => {
         const companies = acc.get(BaseCount) ?? []
         companies.push(CompanyCode)
@@ -20,9 +20,9 @@ export function PlayerBaseStatistics() {
     }
     result.sort((a, b) => a.baseCount - b.baseCount)
     return result
-  }, [isLoading, error, data])
+  }, [data])
 
-  if (isLoading)
+  if (isFetching)
     return <div>Loading</div>
   if (error)
     return <div>Error: {JSON.stringify(error)}</div>
@@ -33,7 +33,7 @@ export function PlayerBaseStatistics() {
   if (true) {
     const width = 800
     const barHeight = 30
-    const avgValue =  processedData.length>0 ? processedData.reduce((sum, a) => sum+a.companies.length, 0) / processedData.length : 1
+    const avgValue = processedData.length > 0 ? processedData.reduce((sum, a) => sum + a.companies.length, 0) / processedData.length : 1
     const advance = Math.trunc(width / avgValue)
     const barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
       <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />

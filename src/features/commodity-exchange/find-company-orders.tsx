@@ -14,19 +14,20 @@ export function FindCompanyOrders() {
   </div>)
 }
 function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
-  const { data, isLoading, error } = useFindCompanyOrdersQuery(companyCode)
+  const { data, isFetching, error } = useFindCompanyOrdersQuery(companyCode)
   const orders = useMemo(() => {
-    if (data)
+    if (data) {
       return data.reduce((acc, o) => {
         if (!acc[o.cx])
           acc[o.cx] = []
         acc[o.cx].push(o)
         return acc
       }, {} as Record<string, typeof data>)
+    }
     return {}
   }, [data])
 
-  if (isLoading)
+  if (isFetching)
     return <div>Loading</div>
   if (error)
     return <div>Error: {JSON.stringify(error)}</div>
@@ -38,7 +39,7 @@ function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
         const salesTotal = calcTotal(orders[cx], true)
         const buysTotal = calcTotal(orders[cx], false)
 
-        return <div className={styles.cxOrders}>
+        return <div key={cx} className={styles.cxOrders}>
           {cx}
           <table className={styles.table}>
             <tbody>
