@@ -24,6 +24,7 @@ const initialState = {
   planet: {
     data: {} as IdMap<Planet>,
     bySystem: {} as IdMap<string[]>,
+    maxResources: {} as Record<string, number>,
   },
   system: {
     data: {} as IdMap<System>,
@@ -34,7 +35,6 @@ const initialState = {
   //   usedIn: {} as Record<string, string[]>,
   //   producedIn: {} as Record<string, string[]>,
   // },
-  // planetMaxResources: {} as Record<string, number>,
   // sectors: [] as Sector[]
 }
 
@@ -90,21 +90,18 @@ const WorldDataSlice = createSlice({
 
     },
     setPlanets(state, action: PayloadAction<Planet[]>) {
-      state.planet = { data: {}, bySystem: {} }
+      state.planet = { data: {}, bySystem: {}, maxResources: {} }
       const obj = state.planet
       for (const o of action.payload) {
         obj.data[o.id] = o
         add(obj.bySystem, o.system, o.id)
+        for (const { material, perDay } of o.resources) {
+          if (!obj.maxResources[material])
+            obj.maxResources[material] = perDay
+          else
+            obj.maxResources[material] = Math.max(obj.maxResources[material], perDay)
+        }
       }
-
-      // state.planetMaxResources = {}
-      // for (const planet of Object.values(state.planets))
-      //   for (const { material, perDay } of planet.resources) {
-      //     if (!state.planetMaxResources[material])
-      //       state.planetMaxResources[material] = perDay
-      //     else
-      //       state.planetMaxResources[material] = Math.max(state.planetMaxResources[material], perDay)
-      //   }
     },
     setSystems(state, action: PayloadAction<System[]>) {
       state.system = { data: {}, byName: {} }
@@ -139,6 +136,9 @@ export function selectBuildings() {
 }
 export function selectPlanets() {
   return useAppSelector(state => state.worldData.planet.data)
+}
+export function selectPlanetsMaxResources() {
+  return useAppSelector(state => state.worldData.planet.maxResources)
 }
 export function selectSystems() {
   return useAppSelector(state => state.worldData.system.data)

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { getPlanetMaterials, PlanetResource, System } from "../../world-data/world-data"
-import { hasData, IdMap, selectMaterials, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
+import { hasData, IdMap, selectMaterials, selectPlanetsMaxResources, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
@@ -61,6 +61,7 @@ export function PlanetSearch() {
 function PlanetSearchInternal() {
   const systems = selectSystems()
   const { planets, planetsPerSystem } = selectPlanetsPerSystem()
+  const maxResources = selectPlanetsMaxResources()
 
   const [startSystem, setStartSystem] = useState("OT-580")
   const [materialFilter, setMaterialFilter] = useState([] as string[])
@@ -72,7 +73,7 @@ function PlanetSearchInternal() {
 
   const cxDistances = useMemo(() =>
     Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
-  , [systems])
+    , [systems])
 
 
   const systemDistances = useMemo(() => {
@@ -167,14 +168,23 @@ function PlanetSearchInternal() {
   }
 
   function showResource(r: PlanetResource) {
-    const percentage = r.perDay / 50//worldData.planetMaxResources[r.material]
-    return <div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>{numberForUser(r.perDay) + materialTypeIcon[r.type]}<div style={{ width: "0.5em", height: percentage + "em", backgroundColor: `rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0)` }} /></div>
+    const percentage = r.perDay / maxResources[r.material]
+    return (<div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>
+      {numberForUser(r.perDay) + materialTypeIcon[r.type]}
+      <div className={styles.resourceIndicator} style={{ background: `linear-gradient(transparent ${(1 - percentage) * 100}%, rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0) 0%)` }} />
+    </div>)
+  }
+  function getResourceTooltip(r: PlanetResource): string {
+    return `${r.material}
+Type: ${r.type}
+Per day: ${numberForUser(r.perDay)}
+Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}% of ${numberForUser(maxResources[r.material])}`
   }
 
   const materials = selectMaterials()
 
   const allResources = useMemo(() => {
-    const mats = [... new Set(Object.values(planets).map(p => p.resources.map(r => r.material)).flat())]
+    const mats = Object.keys(maxResources)
     const cat2mats = mats.reduce((acc, mat) => {
       if (!materials[mat]) {
         console.error("missing mat", mat, materials)
@@ -187,7 +197,7 @@ function PlanetSearchInternal() {
       return acc
     }, {} as Record<string, string[]>)
     return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }))
-  }, [materials])
+  }, [materials, maxResources])
 
   return <div>
     {/* <SortableTable /> */}
@@ -258,13 +268,18 @@ function PlanetSearchInternal() {
                 return <td key={mats.join()} className={used ? styleForMaterial(materials[used]?.category) : ""}>{used}</td>
               }).flat()}
               {
-                materialFilter.map(filter => <td key={filter} className={styleForMaterial(materials[filter]?.category)}>
-                  {planet.resources.filter(r => r.material == filter).map(r => showResource(r)).flat() || null}
-                </td>)
+                materialFilter.map(filter => {
+                  const pr = planet.resources.filter(r => r.material == filter).shift()
+                  if (pr)
+                    return <td key={filter} className={styleForMaterial(materials[filter]?.category)} title={getResourceTooltip(pr)}>
+                      {showResource(pr)}
+                    </td>
+                  return <td key={filter}></td>
+                })
               }
               {
                 planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r =>
-                  <td className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }}>
+                  <td key={r.material} className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }} title={getResourceTooltip(r)}>
                     {<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}
                   </td>
                 ).concat(new Array(5).fill(0).map((_, idx) => <td key={"filler" + idx} />)).slice(0, 5).flat()

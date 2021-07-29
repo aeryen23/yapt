@@ -21,3 +21,10 @@
 .table tr:last-child>td {
     border-width: 0 1px 1px 1px;
 }
+
+.resourceIndicator {
+    width: 0.5em;
+    height: 1em;
+    border: black solid;
+    border-width: 1px;
+}
