@@ -14,7 +14,7 @@ import { FindCompanyOrders } from "./features/commodity-exchange/find-company-or
 
 const pages: (TabDefinition & { experimental?: boolean, hidden?: boolean })[] = [
   { id: "planetsearch", title: "Search planets", content: PlanetSearch },
-  { id: "basecount", title: "Basecount", content: PlayerBaseStatistics, hidden: true },
+  { id: "basecount", title: "Basecount", content: PlayerBaseStatistics },
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },

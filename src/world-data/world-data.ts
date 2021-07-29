@@ -31,68 +31,7 @@ export function getPlanetMaterials(planet: Planet, area = 1) {
   return result
 }
 
-type Map<T> = Record<string, T>
-
-const worldData = {
-  materials: {} as Map<Material>,
-  materialCategories: [] as string[],
-  buildings: {} as Map<Building>,
-  buildingsProduction: {} as Record<keyof Building["workforce"], string[]>,
-  buildingCategories: {} as Record<BuildingType, string[]>,
-  material: {
-    usedIn: {} as Record<string, string[]>,
-    producedIn: {} as Record<string, string[]>,
-  },
-  planets: {} as Map<Planet>,
-  systems: {} as Map<System>,
-  planetMaxResources: {} as Record<string, number>,
-}
-
 /// ------
-
-function add(container: Record<string, string[]>, key: string, value: string) {
-  if (!container[key])
-    container[key] = []
-  container[key].push(value)
-}
-type ShortPlanet = {
-  id: string
-  name: string
-}
-
-// TODO: split loading, type defs etc
-async function loadWorldData() {
-
-  const allBuildingIds = Object.keys(worldData.buildings)
-  for (const type of Object.keys(BuildingType) as BuildingType[])
-    worldData.buildingCategories[type] = allBuildingIds.filter(id => worldData.buildings[id].type == type)
-
-  let productionBuildingIds = worldData.buildingCategories[BuildingType.PRODUCTION]
-  for (const wf of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as (keyof Building["workforce"])[]) {
-    worldData.buildingsProduction[wf] = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] > 0)
-    productionBuildingIds = productionBuildingIds.filter(id => worldData.buildings[id].workforce[wf] == 0)
-  }
-
-  for (const bui of worldData.buildingCategories[BuildingType.PRODUCTION]) {
-    const building = worldData.buildings[bui]
-    for (const recipe of building.recipes) {
-      for (const output of Object.keys(recipe.outputs)) {
-        add(worldData.material.producedIn, output, bui)
-        for (const input of Object.keys(recipe.inputs))
-          add(worldData.material.usedIn, input, output)
-      }
-    }
-  }
-
-  worldData.planetMaxResources = {}
-  for (const planet of Object.values(worldData.planets))
-    for (const { material, perDay } of planet.resources) {
-      if (!worldData.planetMaxResources[material])
-        worldData.planetMaxResources[material] = perDay
-      else
-        worldData.planetMaxResources[material] = Math.max(worldData.planetMaxResources[material], perDay)
-    }
-}
 
 export interface Material {
   id: string;

@@ -30,28 +30,21 @@ export function PlayerBaseStatistics() {
   const sorted = [...data!]
   sorted.sort((a, b) => b.BaseCount - a.BaseCount)
 
-  if (true) {
-    const width = 800
-    const barHeight = 30
-    const avgValue = processedData.length > 0 ? processedData.reduce((sum, a) => sum + a.companies.length, 0) / processedData.length : 1
-    const advance = Math.trunc(width / avgValue)
-    const barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
-      <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />
-    </g>)
-    return (<svg width={width + 20} height="300" >
-      <g className={styles.container}>
-        <text className={styles.title} x="10" y="30">Player bases by count</text>
-        <g className={styles.chart} transform="translate(15,60)">
-          {barGroups}
-        </g>
+  const width = 800
+  const barHeight = 30
+  const avgValue = processedData.length > 0 ? processedData.reduce((sum, a) => sum + a.companies.length, 0) / processedData.length : 1
+  const advance = Math.trunc(width / avgValue)
+  const barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
+    <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />
+  </g>)
+  return (<svg width={width + 20} height="300" >
+    <g className={styles.container}>
+      <text className={styles.title} x="10" y="30">Player bases by count</text>
+      <g className={styles.chart} transform="translate(15,60)">
+        {barGroups}
       </g>
-    </svg>)
-  }
-
-  return (<div style={{ display: "flex", flexDirection: "column" }}>
-    {/* {sorted.map(({ CompanyCode, BaseCount }) => <div key={CompanyCode}>{CompanyCode}: {BaseCount}</div>)} */}
-    {Object.entries(data).map(([idx, a]) => <div key={idx}>{idx + ": "} <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap" }}> {a.join(" ")}</div></div>)}
-  </div>)
+    </g>
+  </svg>)
 }
 
 function BarGroup({ data, barHeight, maxWidth, advance = 10 }: { data: { name: string, value: number, title: string }, barHeight: number, maxWidth: number, advance?: number }) {
