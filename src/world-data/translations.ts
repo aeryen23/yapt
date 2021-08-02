@@ -2768,3 +2768,669 @@ export const materialTranslations = transform({
     "defaultMessage": "Zirconium has many applications including in nuclear reactors as cladding for fuel rods and as corrosion resistant material in chemical processing equipment."
   }
 })
+export const buildingTranslations = transform({ // NOTE: called SectionMessages
+  "advancedAppliancesFactory.name": {
+      "id": "Reactor.advancedAppliancesFactory.name",
+      "defaultMessage": "Advanced Appliances Factory"
+  },
+  "advancedAppliancesFactory.description": {
+      "id": "Reactor.advancedAppliancesFactory.description",
+      "defaultMessage": "Produces advanced appliances, often used in space ships and space stations."
+  },
+  "advancedMaterialLab.name": {
+      "id": "Reactor.advancedMaterialLab.name",
+      "defaultMessage": "Advanced Material Lab"
+  },
+  "advancedMaterialLab.description": {
+      "id": "Reactor.advancedMaterialLab.description",
+      "defaultMessage": "Refines intermediate rare materials into more usable forms."
+  },
+  "advancedSmelter.name": {
+      "id": "Reactor.advancedSmelter.name",
+      "defaultMessage": "High-Power Blast Furnace"
+  },
+  "advancedSmelter.description": {
+      "id": "Reactor.advancedSmelter.description",
+      "defaultMessage": "Allows for the creation of high-performance metal alloys."
+  },
+  "appliancesFactory.name": {
+      "id": "Reactor.appliancesFactory.name",
+      "defaultMessage": "Appliances Factory"
+  },
+  "appliancesFactory.description": {
+      "id": "Reactor.appliancesFactory.description",
+      "defaultMessage": "Produces large appliances, often used in space ships and space stations."
+  },
+  "basicMaterialsPlant.name": {
+      "id": "Reactor.basicMaterialsPlant.name",
+      "defaultMessage": "Basic Materials Plant"
+  },
+  "basicMaterialsPlant.description": {
+      "id": "Reactor.basicMaterialsPlant.description",
+      "defaultMessage": "Produces a host of materials and end products needed to bootstrap a colony."
+  },
+  "chemPlant.name": {
+      "id": "Reactor.chemPlant.name",
+      "defaultMessage": "Chemical Plant"
+  },
+  "chemPlant.description": {
+      "id": "Reactor.chemPlant.description",
+      "defaultMessage": "Produces various chemical compounds and immediate products."
+  },
+  "cleanRoom.name": {
+      "id": "Reactor.cleanRoom.name",
+      "defaultMessage": "Cleanroom"
+  },
+  "cleanRoom.description": {
+      "id": "Reactor.cleanRoom.description",
+      "defaultMessage": "Produces integrated circuits and basic computer parts."
+  },
+  "clothingFactory.name": {
+      "id": "Reactor.clothingFactory.name",
+      "defaultMessage": "Textile Manufacturing"
+  },
+  "clothingFactory.description": {
+      "id": "Reactor.clothingFactory.description",
+      "defaultMessage": "Manufactures textiles from different fibers, used in clothing and even ship construction."
+  },
+  "collector.name": {
+      "id": "Reactor.collector.name",
+      "defaultMessage": "Collector"
+  },
+  "collector.description": {
+      "id": "Reactor.collector.description",
+      "defaultMessage": "Extracts gases from the atmosphere."
+  },
+  "coreModule.name": {
+      "id": "Reactor.coreModule.name",
+      "defaultMessage": "Core Module"
+  },
+  "coreModule.description": {
+      "id": "Reactor.coreModule.description",
+      "defaultMessage": "The basic module and life support necessary to start a new base on a planet."
+  },
+  "corporationProjectFTLLaboratory.name": {
+      "id": "Reactor.corporationProjectFTLLaboratory.name",
+      "defaultMessage": "Corporation FTL Laboratory"
+  },
+  "corporationProjectFTLLaboratory.description": {
+      "id": "Reactor.corporationProjectFTLLaboratory.description",
+      "defaultMessage": "NO FUNCTIONALITY - Prestige Building"
+  },
+  "corporationProjectHeadquarters.name": {
+      "id": "Reactor.corporationProjectHeadquarters.name",
+      "defaultMessage": "Corporation Headquarters"
+  },
+  "corporationProjectHeadquarters.description": {
+      "id": "Reactor.corporationProjectHeadquarters.description",
+      "defaultMessage": "The physical headquarter of any corporation, running basic administrative functions."
+  },
+  "corporationProjectImmortality.name": {
+      "id": "Reactor.corporationProjectImmortality.name",
+      "defaultMessage": "Corporate Immortality Center"
+  },
+  "corporationProjectImmortality.description": {
+      "id": "Reactor.corporationProjectImmortality.description",
+      "defaultMessage": "NO FUNCTIONALITY - Prestige Building"
+  },
+  "corporationProjectTerraforming.name": {
+      "id": "Reactor.corporationProjectTerraforming.name",
+      "defaultMessage": "Corporate Terraformer"
+  },
+  "corporationProjectTerraforming.description": {
+      "id": "Reactor.corporationProjectTerraforming.description",
+      "defaultMessage": "NO FUNCTIONALITY - Prestige Building"
+  },
+  "droneShop.name": {
+      "id": "Reactor.droneShop.name",
+      "defaultMessage": "Drone Shop"
+  },
+  "droneShop.description": {
+      "id": "Reactor.droneShop.description",
+      "defaultMessage": "The place where all things drones are put together."
+  },
+  "einsteiniumEnrichmentPlant.name": {
+      "id": "Reactor.einsteiniumEnrichmentPlant.name",
+      "defaultMessage": "Einsteinium Enrichment"
+  },
+  "einsteiniumEnrichmentPlant.description": {
+      "id": "Reactor.einsteiniumEnrichmentPlant.description",
+      "defaultMessage": "Specialized plant that turns Liquid Einsteinium into its more usable, stabilized form."
+  },
+  "electronicDeviceManufactory.name": {
+      "id": "Reactor.electronicDeviceManufactory.name",
+      "defaultMessage": "Electronic Device Manufactory"
+  },
+  "electronicDeviceManufactory.description": {
+      "id": "Reactor.electronicDeviceManufactory.description",
+      "defaultMessage": "Manufactures a variety of small end-user-ready devices."
+  },
+  "electronicsPlant.name": {
+      "id": "Reactor.electronicsPlant.name",
+      "defaultMessage": "Electronics Plant"
+  },
+  "electronicsPlant.description": {
+      "id": "Reactor.electronicsPlant.description",
+      "defaultMessage": "Uses basic computer parts to manufacture larger computers and control units."
+  },
+  "energyComponentAssembly.name": {
+      "id": "Reactor.energyComponentAssembly.name",
+      "defaultMessage": "Energy Component Assembly"
+  },
+  "energyComponentAssembly.description": {
+      "id": "Reactor.energyComponentAssembly.description",
+      "defaultMessage": "Creates energy supply systems and devices of all kinds."
+  },
+  "extractor.name": {
+      "id": "Reactor.extractor.name",
+      "defaultMessage": "Extractor"
+  },
+  "extractor.description": {
+      "id": "Reactor.extractor.description",
+      "defaultMessage": "Extracts ores and minerals from the surface."
+  },
+  "farm.name": {
+      "id": "Reactor.farm.name",
+      "defaultMessage": "Farmstead"
+  },
+  "farm.description": {
+      "id": "Reactor.farm.description",
+      "defaultMessage": "Produces agricultural products like grains and soy. Needs fertile soil."
+  },
+  "fermentationFacility.name": {
+      "id": "Reactor.fermentationFacility.name",
+      "defaultMessage": "Fermenter"
+  },
+  "fermentationFacility.description": {
+      "id": "Reactor.fermentationFacility.description",
+      "defaultMessage": "Creates those beverages that make life in space just a little bit more bearable."
+  },
+  "fineSmithy.name": {
+      "id": "Reactor.fineSmithy.name",
+      "defaultMessage": "Metalist Studio"
+  },
+  "fineSmithy.description": {
+      "id": "Reactor.fineSmithy.description",
+      "defaultMessage": "Produces the often unnoticed small, metal pieces that make up the core of many installations."
+  },
+  "foodProcessor.name": {
+      "id": "Reactor.foodProcessor.name",
+      "defaultMessage": "Food Processor"
+  },
+  "foodProcessor.description": {
+      "id": "Reactor.foodProcessor.description",
+      "defaultMessage": "Uses agricultural products to produce edible consumables."
+  },
+  "glassFurnace.name": {
+      "id": "Reactor.glassFurnace.name",
+      "defaultMessage": "Glass Furnace"
+  },
+  "glassFurnace.description": {
+      "id": "Reactor.glassFurnace.description",
+      "defaultMessage": "Creates different glasses and other sturdy materials at very high temperatures."
+  },
+  "habitationBarracks.name": {
+      "id": "Reactor.habitationBarracks.name",
+      "defaultMessage": "Barracks"
+  },
+  "habitationBarracks.description": {
+      "id": "Reactor.habitationBarracks.description",
+      "defaultMessage": "Offers housing for 75 pioneers and 75 settlers."
+  },
+  "habitationCommune.name": {
+      "id": "Reactor.habitationCommune.name",
+      "defaultMessage": "Communal Abode"
+  },
+  "habitationCommune.description": {
+      "id": "Reactor.habitationCommune.description",
+      "defaultMessage": "Offers housing for 75 settlers and 75 technicians."
+  },
+  "habitationEngineer.name": {
+      "id": "Reactor.habitationEngineer.name",
+      "defaultMessage": "Engineer Habitation"
+  },
+  "habitationEngineer.description": {
+      "id": "Reactor.habitationEngineer.description",
+      "defaultMessage": "Offers housing for 100 engineers."
+  },
+  "habitationLuxury.name": {
+      "id": "Reactor.habitationLuxury.name",
+      "defaultMessage": "Luxury Residence"
+  },
+  "habitationLuxury.description": {
+      "id": "Reactor.habitationLuxury.description",
+      "defaultMessage": "Offers housing for 75 engineers and 75 scientists."
+  },
+  "habitationManagers.name": {
+      "id": "Reactor.habitationManagers.name",
+      "defaultMessage": "Management Domicile"
+  },
+  "habitationManagers.description": {
+      "id": "Reactor.habitationManagers.description",
+      "defaultMessage": "Offers housing for 75 technicians and 75 engineers."
+  },
+  "habitationPioneer.name": {
+      "id": "Reactor.habitationPioneer.name",
+      "defaultMessage": "Pioneer Habitation"
+  },
+  "habitationPioneer.description": {
+      "id": "Reactor.habitationPioneer.description",
+      "defaultMessage": "Offers housing for 100 pioneers."
+  },
+  "habitationScientist.name": {
+      "id": "Reactor.habitationScientist.name",
+      "defaultMessage": "Scientist Habitation"
+  },
+  "habitationScientist.description": {
+      "id": "Reactor.habitationScientist.description",
+      "defaultMessage": "Offers housing for 100 scientists."
+  },
+  "habitationSettler.name": {
+      "id": "Reactor.habitationSettler.name",
+      "defaultMessage": "Settler Habitation"
+  },
+  "habitationSettler.description": {
+      "id": "Reactor.habitationSettler.description",
+      "defaultMessage": "Offers housing for  100 settlers."
+  },
+  "habitationTechnician.name": {
+      "id": "Reactor.habitationTechnician.name",
+      "defaultMessage": "Technician Habitation"
+  },
+  "habitationTechnician.description": {
+      "id": "Reactor.habitationTechnician.description",
+      "defaultMessage": "Offers housing for 100 technicians."
+  },
+  "hullWeldingPlant.name": {
+      "id": "Reactor.hullWeldingPlant.name",
+      "defaultMessage": "Hull Welding Plant"
+  },
+  "hullWeldingPlant.description": {
+      "id": "Reactor.hullWeldingPlant.description",
+      "defaultMessage": "Creates a variety of ship hull plates and shields."
+  },
+  "hydroponicsFarm.name": {
+      "id": "Reactor.hydroponicsFarm.name",
+      "defaultMessage": "Hydroponics Farm"
+  },
+  "hydroponicsFarm.description": {
+      "id": "Reactor.hydroponicsFarm.description",
+      "defaultMessage": "Produces agricultural products like hydrocarbon plants. Does not need fertile soil but lots of water."
+  },
+  "inVitroPlant.name": {
+      "id": "Reactor.inVitroPlant.name",
+      "defaultMessage": "In-Vitro Plant"
+  },
+  "inVitroPlant.description": {
+      "id": "Reactor.inVitroPlant.description",
+      "defaultMessage": "Deals with the creation of artificial life and meat products."
+  },
+  "incinerator.name": {
+      "id": "Reactor.incinerator.name",
+      "defaultMessage": "Incinerator"
+  },
+  "incinerator.description": {
+      "id": "Reactor.incinerator.description",
+      "defaultMessage": "Turns organically grown plants into life's most basic resource, Carbon."
+  },
+  "laboratory.name": {
+      "id": "Reactor.laboratory.name",
+      "defaultMessage": "Laboratory"
+  },
+  "laboratory.description": {
+      "id": "Reactor.laboratory.description",
+      "defaultMessage": "Advanced laboratory that deals in more complex chemical reactions."
+  },
+  "mediumComponentsAssembly.name": {
+      "id": "Reactor.mediumComponentsAssembly.name",
+      "defaultMessage": "Medium Components Assembly"
+  },
+  "mediumComponentsAssembly.description": {
+      "id": "Reactor.mediumComponentsAssembly.description",
+      "defaultMessage": "Assembles technical pieces into larger parts, ready to be used in many devices."
+  },
+  "orchard.name": {
+      "id": "Reactor.orchard.name",
+      "defaultMessage": "Orchard"
+  },
+  "orchard.description": {
+      "id": "Reactor.orchard.description",
+      "defaultMessage": "A specialized farm that produces high-maintenance fruits for high-end consumables."
+  },
+  "pharmaFactory.name": {
+      "id": "Reactor.pharmaFactory.name",
+      "defaultMessage": "Pharma Factory"
+  },
+  "pharmaFactory.description": {
+      "id": "Reactor.pharmaFactory.description",
+      "defaultMessage": "A versatile factory equipped to produce medication as well as curative support products."
+  },
+  "planetaryProjectAdminCenter.name": {
+      "id": "Reactor.planetaryProjectAdminCenter.name",
+      "defaultMessage": "Administration Center"
+  },
+  "planetaryProjectAdminCenter.description": {
+      "id": "Reactor.planetaryProjectAdminCenter.description",
+      "defaultMessage": "The Administration Center allows to hold elections for a planetary governor. The governor can set taxes and fees like a production fee for example. Every site owner has the right to vote, but votes can also be acquired by completing tasks set up by the Exodus Council."
+  },
+  "planetaryProjectCogc.name": {
+      "id": "Reactor.planetaryProjectCogc.name",
+      "defaultMessage": "Chamber of Global Commerce"
+  },
+  "planetaryProjectCogc.description": {
+      "id": "Reactor.planetaryProjectCogc.description",
+      "defaultMessage": "Allows for the communal implementation of industrial support programs."
+  },
+  "planetaryProjectComfortBig.name": {
+      "id": "Reactor.planetaryProjectComfortBig.name",
+      "defaultMessage": "4D Arcades"
+  },
+  "planetaryProjectComfortBig.description": {
+      "id": "Reactor.planetaryProjectComfortBig.description",
+      "defaultMessage": "Provides a large amount of comfort."
+  },
+  "planetaryProjectComfortCulture.name": {
+      "id": "Reactor.planetaryProjectComfortCulture.name",
+      "defaultMessage": "Art Café"
+  },
+  "planetaryProjectComfortCulture.description": {
+      "id": "Reactor.planetaryProjectComfortCulture.description",
+      "defaultMessage": "Provides a small amount of comfort and culture."
+  },
+  "planetaryProjectComfortSmall.name": {
+      "id": "Reactor.planetaryProjectComfortSmall.name",
+      "defaultMessage": "Wildlife Park"
+  },
+  "planetaryProjectComfortSmall.description": {
+      "id": "Reactor.planetaryProjectComfortSmall.description",
+      "defaultMessage": "Provides a small amount of comfort."
+  },
+  "planetaryProjectCultureBig.name": {
+      "id": "Reactor.planetaryProjectCultureBig.name",
+      "defaultMessage": "VR Theater"
+  },
+  "planetaryProjectCultureBig.description": {
+      "id": "Reactor.planetaryProjectCultureBig.description",
+      "defaultMessage": "Provides a large amount of culture."
+  },
+  "planetaryProjectCultureEducation.name": {
+      "id": "Reactor.planetaryProjectCultureEducation.name",
+      "defaultMessage": "Planetary Broadcasting Hub"
+  },
+  "planetaryProjectCultureEducation.description": {
+      "id": "Reactor.planetaryProjectCultureEducation.description",
+      "defaultMessage": "Provides a small amount of culture and education."
+  },
+  "planetaryProjectCultureSmall.name": {
+      "id": "Reactor.planetaryProjectCultureSmall.name",
+      "defaultMessage": "Art Gallery"
+  },
+  "planetaryProjectCultureSmall.description": {
+      "id": "Reactor.planetaryProjectCultureSmall.description",
+      "defaultMessage": "Provides a small amount of culture."
+  },
+  "planetaryProjectEducationBig.name": {
+      "id": "Reactor.planetaryProjectEducationBig.name",
+      "defaultMessage": "University"
+  },
+  "planetaryProjectEducationBig.description": {
+      "id": "Reactor.planetaryProjectEducationBig.description",
+      "defaultMessage": "Provides a large amount of education."
+  },
+  "planetaryProjectEducationSmall.name": {
+      "id": "Reactor.planetaryProjectEducationSmall.name",
+      "defaultMessage": "Library"
+  },
+  "planetaryProjectEducationSmall.description": {
+      "id": "Reactor.planetaryProjectEducationSmall.description",
+      "defaultMessage": "Provides a small amount of education."
+  },
+  "planetaryProjectHealthBig.name": {
+      "id": "Reactor.planetaryProjectHealthBig.name",
+      "defaultMessage": "Hospital"
+  },
+  "planetaryProjectHealthBig.description": {
+      "id": "Reactor.planetaryProjectHealthBig.description",
+      "defaultMessage": "Provides a large amount of health. "
+  },
+  "planetaryProjectHealthComfort.name": {
+      "id": "Reactor.planetaryProjectHealthComfort.name",
+      "defaultMessage": "Wellness Center"
+  },
+  "planetaryProjectHealthComfort.description": {
+      "id": "Reactor.planetaryProjectHealthComfort.description",
+      "defaultMessage": "Provides a small amount of health and comfort."
+  },
+  "planetaryProjectHealthSmall.name": {
+      "id": "Reactor.planetaryProjectHealthSmall.name",
+      "defaultMessage": "Infirmary"
+  },
+  "planetaryProjectHealthSmall.description": {
+      "id": "Reactor.planetaryProjectHealthSmall.description",
+      "defaultMessage": "Provides a small amount of health."
+  },
+  "planetaryProjectLocalMarket.name": {
+      "id": "Reactor.planetaryProjectLocalMarket.name",
+      "defaultMessage": "Local Market"
+  },
+  "planetaryProjectLocalMarket.description": {
+      "id": "Reactor.planetaryProjectLocalMarket.description",
+      "defaultMessage": "A simple, unregulated, bulletin board style market place."
+  },
+  "planetaryProjectPopulation.name": {
+      "id": "Reactor.planetaryProjectPopulation.name",
+      "defaultMessage": "Population Infrastructure"
+  },
+  "planetaryProjectPopulation.description": {
+      "id": "Reactor.planetaryProjectPopulation.description",
+      "defaultMessage": "This planetary project is a collection of all infrastructure projects that are relevant for the local population"
+  },
+  "planetaryProjectSafetyBig.name": {
+      "id": "Reactor.planetaryProjectSafetyBig.name",
+      "defaultMessage": "Security Drone Post"
+  },
+  "planetaryProjectSafetyBig.description": {
+      "id": "Reactor.planetaryProjectSafetyBig.description",
+      "defaultMessage": "Provides a large amount of safety."
+  },
+  "planetaryProjectSafetyHealth.name": {
+      "id": "Reactor.planetaryProjectSafetyHealth.name",
+      "defaultMessage": "Emergency Center"
+  },
+  "planetaryProjectSafetyHealth.description": {
+      "id": "Reactor.planetaryProjectSafetyHealth.description",
+      "defaultMessage": "Provides a small amount of safety and health."
+  },
+  "planetaryProjectSafetySmall.name": {
+      "id": "Reactor.planetaryProjectSafetySmall.name",
+      "defaultMessage": "Safety Station"
+  },
+  "planetaryProjectSafetySmall.description": {
+      "id": "Reactor.planetaryProjectSafetySmall.description",
+      "defaultMessage": "Provides a small amount of safety."
+  },
+  "planetaryProjectShipyard.name": {
+      "id": "Reactor.planetaryProjectShipyard.name",
+      "defaultMessage": "Planetary Shipyard"
+  },
+  "planetaryProjectShipyard.description": {
+      "id": "Reactor.planetaryProjectShipyard.description",
+      "defaultMessage": "Bring your blueprints and materials here to build new ships."
+  },
+  "planetaryProjectWarehouse.name": {
+      "id": "Reactor.planetaryProjectWarehouse.name",
+      "defaultMessage": "Planetary Warehouse"
+  },
+  "planetaryProjectWarehouse.description": {
+      "id": "Reactor.planetaryProjectWarehouse.description",
+      "defaultMessage": "Offers storage space for rent without the need to own a local site."
+  },
+  "plasticsPrinterFacility.name": {
+      "id": "Reactor.plasticsPrinterFacility.name",
+      "defaultMessage": "3D Printer"
+  },
+  "plasticsPrinterFacility.description": {
+      "id": "Reactor.plasticsPrinterFacility.description",
+      "defaultMessage": "Prints objects out of plastic pellets."
+  },
+  "polymerPlant.name": {
+      "id": "Reactor.polymerPlant.name",
+      "defaultMessage": "Polymer Plant"
+  },
+  "polymerPlant.description": {
+      "id": "Reactor.polymerPlant.description",
+      "defaultMessage": "Chemical plant that turns basic elements into flexible polymers, used in all stages of technology."
+  },
+  "prefabPlant1.name": {
+      "id": "Reactor.prefabPlant1.name",
+      "defaultMessage": "Prefab Plant MK1"
+  },
+  "prefabPlant1.description": {
+      "id": "Reactor.prefabPlant1.description",
+      "defaultMessage": "Produces basic prefabs necessary to construct buildings."
+  },
+  "prefabPlant2.name": {
+      "id": "Reactor.prefabPlant2.name",
+      "defaultMessage": "Prefab Plant MK2"
+  },
+  "prefabPlant2.description": {
+      "id": "Reactor.prefabPlant2.description",
+      "defaultMessage": "Produces lightweight prefabs necessary to construct buildings."
+  },
+  "prefabPlant3.name": {
+      "id": "Reactor.prefabPlant3.name",
+      "defaultMessage": "Prefab Plant MK3"
+  },
+  "prefabPlant3.description": {
+      "id": "Reactor.prefabPlant3.description",
+      "defaultMessage": "Produces reinforced prefabs necessary to construct buildings."
+  },
+  "prefabPlant4.name": {
+      "id": "Reactor.prefabPlant4.name",
+      "defaultMessage": "Prefab Plant MK4"
+  },
+  "prefabPlant4.description": {
+      "id": "Reactor.prefabPlant4.description",
+      "defaultMessage": "Produces advanced prefabs necessary to construct buildings."
+  },
+  "refinery.name": {
+      "id": "Reactor.refinery.name",
+      "defaultMessage": "Refinery"
+  },
+  "refinery.description": {
+      "id": "Reactor.refinery.description",
+      "defaultMessage": "Produces fuels used for space flight."
+  },
+  "rig.name": {
+      "id": "Reactor.rig.name",
+      "defaultMessage": "Rig"
+  },
+  "rig.description": {
+      "id": "Reactor.rig.description",
+      "defaultMessage": "Extracts liquid resources."
+  },
+  "shipKitFactory.name": {
+      "id": "Reactor.shipKitFactory.name",
+      "defaultMessage": "Ship Kit Factory"
+  },
+  "shipKitFactory.description": {
+      "id": "Reactor.shipKitFactory.description",
+      "defaultMessage": "A factory where all kinds of standardized cargo bay and fuel tank kits are put together."
+  },
+  "smallComponentsAssembly.name": {
+      "id": "Reactor.smallComponentsAssembly.name",
+      "defaultMessage": "Small Components Assembly"
+  },
+  "smallComponentsAssembly.description": {
+      "id": "Reactor.smallComponentsAssembly.description",
+      "defaultMessage": "Assembles technical pieces into smaller parts, ready to be used in many devices."
+  },
+  "smelter.name": {
+      "id": "Reactor.smelter.name",
+      "defaultMessage": "Smelter"
+  },
+  "smelter.description": {
+      "id": "Reactor.smelter.description",
+      "defaultMessage": "Produces metals from ores."
+  },
+  "softwareDevelopment.name": {
+      "id": "Reactor.softwareDevelopment.name",
+      "defaultMessage": "Software Development"
+  },
+  "softwareDevelopment.description": {
+      "id": "Reactor.softwareDevelopment.description",
+      "defaultMessage": "Here basic software components are being developed for use in more complex tools and systems."
+  },
+  "softwareEngineering.name": {
+      "id": "Reactor.softwareEngineering.name",
+      "defaultMessage": "Software Engineering"
+  },
+  "softwareEngineering.description": {
+      "id": "Reactor.softwareEngineering.description",
+      "defaultMessage": "Basic software components are combined into tools that can be applied in a variety of devices or used as parts of more complex systems."
+  },
+  "softwareLabs.name": {
+      "id": "Reactor.softwareLabs.name",
+      "defaultMessage": "Software Labs"
+  },
+  "softwareLabs.description": {
+      "id": "Reactor.softwareLabs.description",
+      "defaultMessage": "Architects form more advanced software applications from basic algorithms and tools for use in high-end devices."
+  },
+  "spacecraftPrefabPlant.name": {
+      "id": "Reactor.spacecraftPrefabPlant.name",
+      "defaultMessage": "Spacecraft Prefab Plant"
+  },
+  "spacecraftPrefabPlant.description": {
+      "id": "Reactor.spacecraftPrefabPlant.description",
+      "defaultMessage": "A creation facility for all kinds of kits and standardized spaceship components."
+  },
+  "spacecraftPropulsionFactory.name": {
+      "id": "Reactor.spacecraftPropulsionFactory.name",
+      "defaultMessage": "Spacecraft Propulsion Factory"
+  },
+  "spacecraftPropulsionFactory.description": {
+      "id": "Reactor.spacecraftPropulsionFactory.description",
+      "defaultMessage": "Produces anything necessary to move a spaceship, i.e. all kinds of STL engines and FTL reactors."
+  },
+  "storageFacility.name": {
+      "id": "Reactor.storageFacility.name",
+      "defaultMessage": "Storage Facility"
+  },
+  "storageFacility.description": {
+      "id": "Reactor.storageFacility.description",
+      "defaultMessage": "Increases the storage capacity by 5000."
+  },
+  "technetiumProcessing.name": {
+      "id": "Reactor.technetiumProcessing.name",
+      "defaultMessage": "Technetium Processing"
+  },
+  "technetiumProcessing.description": {
+      "id": "Reactor.technetiumProcessing.description",
+      "defaultMessage": "Processes basic Technetium into a more stable configuration of the element."
+  },
+  "unitPrefabPlant.name": {
+      "id": "Reactor.unitPrefabPlant.name",
+      "defaultMessage": "Unit Prefab Plant"
+  },
+  "unitPrefabPlant.description": {
+      "id": "Reactor.unitPrefabPlant.description",
+      "defaultMessage": "Produces building units ready to be used as parts of bigger construction projects."
+  },
+  "weavingPlant.name": {
+      "id": "Reactor.weavingPlant.name",
+      "defaultMessage": "Weaving Plant"
+  },
+  "weavingPlant.description": {
+      "id": "Reactor.weavingPlant.description",
+      "defaultMessage": "Creates the most basic fabrics from fibers"
+  },
+  "weldingPlant.name": {
+      "id": "Reactor.weldingPlant.name",
+      "defaultMessage": "Welding Plant"
+  },
+  "weldingPlant.description": {
+      "id": "Reactor.weldingPlant.description",
+      "defaultMessage": "Creates a diverse set of metal products used in construction and device manufacturing."
+  }
+})

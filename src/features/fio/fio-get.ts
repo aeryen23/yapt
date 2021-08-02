@@ -2,7 +2,7 @@
 import { store } from "../../app/store"
 import { Building, BuildingType, Material, Planet, Recipe, System, WorkforceLevel } from "../../world-data/world-data"
 import { IdMap, setBuildings, setFetchState, setMaterials, setPlanets, setSystems } from "../../world-data/world-data-slice"
-import { FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types"
+import { FactionCode, FioBuilding, FioCommodityAmount, FioMaterial, FioPlanet, FioSystemStar, FioWorldSector } from "./fio-types"
 
 type StoreDescriptor<FioType, AppType> = {
   name: string,
@@ -24,19 +24,17 @@ function getBuildingType(bui: FioBuilding) {
     return BuildingType.PLANETARY_PROJECT
   if (bui.Name.startsWith("corporationProject"))
     return BuildingType.CORPORATION_PROJECT
-  if (bui.Recipes.length) {
-    if (bui.Expertise == "RESOURCE_EXTRACTION" && bui.Recipes.filter(r => r.Inputs.length == 0).length > 0)
-      return BuildingType.RESOURCES
-    else {
-      return BuildingType.PRODUCTION
-      // for (const level of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as WorkforceLevel[])
-      //   if (bui.workforce[level] > 0) {
-      //     bui.workforceLevel = level
-      //     break;
-      //   }
-    }
-  }
-  return BuildingType.HABITATION
+  if (bui.Recipes.length == 0)
+    return BuildingType.HABITATION
+  if (bui.Expertise == "RESOURCE_EXTRACTION" && bui.Recipes.filter(r => r.Inputs.length == 0).length > 0)
+    return BuildingType.RESOURCES
+  return BuildingType.PRODUCTION
+}
+function getBuildingWorkforceLevel(bui: FioBuilding): WorkforceLevel {
+  for (const level of ["Scientists", "Engineers", "Technicians", "Settlers", "Pioneers"] as WorkforceLevel[])
+    if (bui[level] > 0)
+      return level
+  return "Pioneers"
 }
 
 const materialsDesc: StoreDescriptor<FioMaterial, Material> = {
@@ -57,7 +55,7 @@ const buildingsDesc: StoreDescriptor<FioBuilding, Building> = {
     id: entry.Ticker,
     name: entry.Name,
     type: getBuildingType(entry),
-    workforceLevel: "Pioneers", // TODO
+    workforceLevel: getBuildingWorkforceLevel(entry),
     costs: mapCA(entry.BuildingCosts),
     recipes: entry.Recipes.map<Recipe>(r => ({
       inputs: mapCA(r.Inputs),
@@ -85,9 +83,9 @@ const systemsDesc: StoreDescriptor<FioSystemStar, System> = {
       name: entry.Name,
       type: entry.Type,
       connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
-      // position: [entry.PositionX, entry.PositionY, entry.PositionZ],
-      // sector: entry.SectorId,
-      // subSector: entry.SubSectorId,
+      position: [entry.PositionX, entry.PositionY, entry.PositionZ],
+      sector: entry.SectorId,
+      subSector: entry.SubSectorId,
       // planets: planets.filter(p => p.system == entry.NaturalId).map(p => p.id),
     }))
   },
@@ -107,31 +105,54 @@ const planetsDesc: StoreDescriptor<FioPlanet, Planet> = {
         perDay: r.Factor * (r.ResourceType == "GASEOUS" ? 60 : 70),
         type: r.ResourceType,
       })),
-      // cmCosts: planet.BuildRequirements.reduce((acc, r) => ({ ...acc, [r.MaterialTicker]: r.MaterialAmount }), {}),
-      // flightData: {
-      //   magneticField: planet.MagneticField,
-      //   mass: planet.Mass,
-      //   massEarth: planet.MassEarth,
-      //   radiation: planet.Radiation,
-      // },
-      // orbitData: {
-      //   orbitSemiMajorAxis: planet.OrbitSemiMajorAxis,
-      //   orbitEccentricity: planet.OrbitEccentricity,
-      //   orbitInclination: planet.OrbitInclination,
-      //   orbitRightAscension: planet.OrbitRightAscension,
-      //   orbitPeriapsis: planet.OrbitPeriapsis,
-      //   orbitIndex: planet.OrbitIndex,
-      // },
       environment: {
         surface: entry.Surface,
         fertility: entry.Fertility,
         temperature: entry.Temperature,
         gravity: entry.Gravity,
         pressure: entry.Pressure,
-        // radius: planet.Radius,
-        // sunlight: planet.Sunlight,
       },
-      // factionCode: planet.FactionCode || undefined,
+      flightData: {
+        magneticField: entry.MagneticField,
+        mass: entry.Mass,
+        massEarth: entry.MassEarth,
+        radiation: entry.Radiation,
+        radius: entry.Radius,
+        sunlight: entry.Sunlight,
+      },
+      orbitData: {
+        eccentricity: entry.OrbitEccentricity,
+        inclination: entry.OrbitInclination,
+        index: entry.OrbitIndex,
+        periapsis: entry.OrbitPeriapsis,
+        rightAscension: entry.OrbitRightAscension,
+        semiMajorAxis: entry.OrbitSemiMajorAxis,
+      },
+      infrastructure: {
+        hasAdministrationCenter: entry.HasAdministrationCenter,
+        hasChamberOfCommerce: entry.HasChamberOfCommerce,
+        hasLocalMarket: entry.HasLocalMarket,
+        hasShipyard: entry.HasShipyard,
+        hasWarehouse: entry.HasWarehouse,
+        baseLocalMarketFee: entry.BaseLocalMarketFee,
+        localMarketFeeFactor: entry.LocalMarketFeeFactor,
+        warehouseFee: entry.WarehouseFee,
+        productionFees: entry.ProductionFees.reduce((acc, pf) => ({ ...acc, [pf.Category]: pf.FeeAmount }), {} as Planet["infrastructure"]["productionFees"]),
+        populationId: entry.PopulationId,
+        cogcProgramStatus: entry.COGCProgramStatus ?? undefined,
+        cogcPrograms: entry.COGCPrograms,
+        cogcUpkeep: entry.COGCUpkeep,
+        cogcVotes: entry.COGCVotes,
+      },
+      factionCode: entry.FactionCode ?? undefined,
+      otherStuff: {
+        governorCorporationCode: entry.GovernorCorporationCode ?? undefined,
+        collectorCode: entry.CollectorCode ?? undefined,
+        collectorId: entry.CollectorId ?? undefined,
+        collectorName: entry.CollectorName ?? undefined,
+        currencyCode: entry.CurrencyCode ?? undefined,
+        currencyName: entry.CurrencyName ?? undefined,
+      }
     }))
   },
   set: entries => store.dispatch(setPlanets(entries)),

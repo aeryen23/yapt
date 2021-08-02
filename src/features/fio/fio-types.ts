@@ -55,9 +55,9 @@ export interface FioPlanet {
   Resources:               FioResource[];
   BuildRequirements:       FioBuildRequirement[];
   ProductionFees:          ProductionFee[];
-  COGCPrograms:            any[];
-  COGCVotes:               any[];
-  COGCUpkeep:              any[];
+  COGCPrograms:            FioCOGCProgram[];
+  COGCVotes:               FioCOGCVote[];
+  COGCUpkeep:              any[]; // Seems this is always empty?
   PlanetId:                string;
   PlanetNaturalId:         string;
   PlanetName:              string;
@@ -89,8 +89,8 @@ export interface FioPlanet {
   HasShipyard:             boolean;
   FactionCode:             FactionCode | null;
   FactionName:             string | null;
-  GovernorId:              null;
-  GovernorUserName:        null;
+  GovernorId:              string | null;
+  GovernorUserName:        string | null;
   GovernorCorporationId:   string | null;
   GovernorCorporationName: string | null;
   GovernorCorporationCode: FactionCode | null;
@@ -103,10 +103,31 @@ export interface FioPlanet {
   LocalMarketFeeFactor:    number;
   WarehouseFee:            number;
   PopulationId:            string;
-  COGCProgramStatus:       null;
+  COGCProgramStatus:       string | null;
   PlanetTier:              number;
   UserNameSubmitted:       string;
   Timestamp:               string;
+}
+export interface FioCOGCProgram {
+  ProgramType:  FioCOGCProgramType;
+  StartEpochMs: number;
+  EndEpochMs:   number;
+}
+
+export enum FioCOGCProgramType {
+  AdvertisingConstruction = "ADVERTISING_CONSTRUCTION",
+  AdvertisingFuelRefining = "ADVERTISING_FUEL_REFINING",
+  WorkforcePioneers = "WORKFORCE_PIONEERS",
+  WorkforceSettlers = "WORKFORCE_SETTLERS",
+  // TODO: there are more
+}
+
+export interface FioCOGCVote {
+  CompanyName:     string;
+  CompanyCode:     string;
+  Influence:       number;
+  VoteType:        FioCOGCProgramType;
+  VoteTimeEpochMs: number;
 }
 
 export interface FioBuildRequirement {
@@ -155,29 +176,29 @@ export interface FioSystemStar {
   PositionZ:         number;
   SectorId:          string;
   SubSectorId:       string;
-  UserNameSubmitted: null;
+  UserNameSubmitted: string | null;
   Timestamp:         string;
 }
 export type StarType = "A" | "B" | "F" | "G" | "K" | "M" | "O"
 
 export interface FioWorldSector {
-  SubSectors:        SubSector[];
+  SubSectors:        FioSubSector[];
   SectorId:          string;
   Name:              string;
   HexQ:              number;
   HexR:              number;
   HexS:              number;
   Size:              number;
-  UserNameSubmitted: null;
+  UserNameSubmitted: string | null;
   Timestamp:         string;
 }
 
-export interface SubSector {
-  Vertices: Vertex[];
+export interface FioSubSector {
+  Vertices: FioSubSectorVertex[];
   SSId:     string;
 }
 
-export interface Vertex {
+export interface FioSubSectorVertex {
   X: number;
   Y: number;
   Z: number;

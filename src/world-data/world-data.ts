@@ -1,8 +1,4 @@
-import {
-  FioBuilding, FioCommodityAmount, FactionCode,
-  FioMaterial, FioPlanet, ResourceType, BuildingCategory,
-  FioSystemStar, FioWorldSector, StarType, FioShortPlanet
-} from "../features/fio/fio-types"
+import { FactionCode, ResourceType, BuildingCategory, StarType, FioCOGCProgram, FioCOGCVote } from "../features/fio/fio-types"
 
 export function getPlanetMaterials(planet: Planet, area = 1) {
   // https://handbook.apex.prosperousuniverse.com/wiki/building-costs/
@@ -120,19 +116,59 @@ export interface Planet {
   system: string;
   resources: PlanetResource[];
   environment: PlanetEnvironment;
-  // cmCosts: Commodities;
-  // orbitData: PlanetOrbitData;
-  // surfaceData: PlanetSurfaceData;
-  // factionCode?: FactionCode;
+
+  // TODO: following stuff was not there originally
+  flightData: {
+    magneticField: number,
+    mass: number,
+    massEarth: number,
+    radiation: number,
+    radius: number,
+    sunlight: number,
+  },
+  orbitData: {
+    eccentricity: number,
+    inclination: number,
+    index: number,
+    periapsis: number,
+    rightAscension: number,
+    semiMajorAxis: number,
+  },
+  infrastructure: PlanetInfrastructure,
+  factionCode?: FactionCode,
+  otherStuff: {
+    governorCorporationCode?: string,
+    collectorCode?: string,
+    collectorId?: string,
+    collectorName?: string,
+    currencyCode?: string,
+    currencyName?: string,
+  }
+}
+export interface PlanetInfrastructure {
+  hasAdministrationCenter: boolean,
+  hasChamberOfCommerce: boolean,
+  hasLocalMarket: boolean,
+  hasShipyard: boolean,
+  hasWarehouse: boolean,
+  baseLocalMarketFee: number,
+  localMarketFeeFactor: number,
+  warehouseFee: number,
+  productionFees: Record<BuildingCategory, number>,
+  populationId: string,
+  cogcProgramStatus?: string, // "ACTIVE" | ...
+  cogcPrograms: FioCOGCProgram[],
+  cogcUpkeep: unknown[],
+  cogcVotes: FioCOGCVote[],
 }
 
 export interface System {
   id: string;
   name: string;
-  // position: Position;
-  // sector: string;
-  // subSector: string;
-  // type: StarType;
+  position: Position;
+  sector: string;
+  subSector: string;
+  type: StarType;
   connections: string[];
 }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
-import { getPlanetMaterials, PlanetResource, System } from "../../world-data/world-data"
-import { hasData, IdMap, selectMaterials, selectPlanetsMaxResources, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
+import { buildingTranslations } from "../../world-data/translations"
+import { getPlanetMaterials, PlanetInfrastructure, PlanetResource, System } from "../../world-data/world-data"
+import { hasData, IdMap, selectBuildings, selectMaterials, selectPlanet, selectPlanetsMaxResources, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
@@ -43,12 +44,6 @@ Rocky or Gaseous`]: "🪐",
 }
 const NUM_HEADERS = Object.keys(HEADERS).length
 
-const infrastructure = "🚧🏪🏦🏬🏛️🏗️"
-// Local Market
-// Chamber of Commerce
-// Warehouse
-// Administration Center
-// Shipyard
 const test = "📉📈💰"
 
 const additionalBuildingMaterials = ["MCG", "AEF", "SEA", "HSE", "INS", "TSH", "MGC", "BL"]
@@ -167,20 +162,6 @@ function PlanetSearchInternal() {
     return () => { }
   }
 
-  function showResource(r: PlanetResource) {
-    const percentage = r.perDay / maxResources[r.material]
-    return (<div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>
-      {numberForUser(r.perDay) + materialTypeIcon[r.type]}
-      <div className={styles.resourceIndicator} style={{ background: `linear-gradient(transparent ${(1 - percentage) * 100}%, rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0) 0%)` }} />
-    </div>)
-  }
-  function getResourceTooltip(r: PlanetResource): string {
-    return `${r.material}
-Type: ${r.type}
-Per day: ${numberForUser(r.perDay)}
-Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}% of ${numberForUser(maxResources[r.material])}`
-  }
-
   const materials = selectMaterials()
 
   const allResources = useMemo(() => {
@@ -236,10 +217,13 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
       <table className={styles.table}>
         <thead>
           <tr>
+            <th></th>
             {Object.entries(HEADERS).map(([title, text], index) => <th key={text} title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
             {materialFilter.map((filter, index) => <th key={filter} title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
             <th colSpan={5}></th>
             {Object.keys(cxDistances).map((cx, index) => <th key={cx} onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
+            <th>Faction</th>
+            <th>Infrastructure</th>
           </tr>
         </thead>
         <tbody>
@@ -256,37 +240,7 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
               }
             }
             return materialFilterAnd
-          }).map(r => {
-            const planet = planets[r.planet]
-            const planetMaterials = Object.keys(getPlanetMaterials(planet))
-            return (<tr key={r.planet}>
-              <td>{r.jumps}</td>
-              <td title={planets[r.planet].name}>{r.planet}</td>
-              <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
-              {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
-                const used = mats.filter(m => planetMaterials.indexOf(m) != -1)[0]
-                return <td key={mats.join()} className={used ? styleForMaterial(materials[used]?.category) : ""}>{used}</td>
-              }).flat()}
-              {
-                materialFilter.map(filter => {
-                  const pr = planet.resources.filter(r => r.material == filter).shift()
-                  if (pr)
-                    return <td key={filter} className={styleForMaterial(materials[filter]?.category)} title={getResourceTooltip(pr)}>
-                      {showResource(pr)}
-                    </td>
-                  return <td key={filter}></td>
-                })
-              }
-              {
-                planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r =>
-                  <td key={r.material} className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }} title={getResourceTooltip(r)}>
-                    {<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}
-                  </td>
-                ).concat(new Array(5).fill(0).map((_, idx) => <td key={"filler" + idx} />)).slice(0, 5).flat()
-              }
-              {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(planets[r.planet].system)}</td>)}
-            </tr>)
-          })}
+          }).map((r, index) => <PlanetResult key={r.planet} index={index} planetId={r.planet} jumps={r.jumps} materialFilter={materialFilter} cxDistances={cxDistances} />)}
         </tbody>
       </table>
     </div>
@@ -361,6 +315,95 @@ function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
     }
   }
   return evaluated
+}
+const BUILDING_FOR_RESOURCE_TYPE: Record<PlanetResource["type"], string> = {
+  "GASEOUS": "COL",
+  "LIQUID": "RIG",
+  "MINERAL": "EXT",
+}
+
+function PlanetResult({ index, planetId, jumps, materialFilter, cxDistances }: { index: number, planetId: string, jumps: number, materialFilter: string[], cxDistances: Record<string, Map<string, number>> }) {
+  const planet = selectPlanet(planetId)
+  const materials = selectMaterials()
+  const planetMaterials = Object.keys(getPlanetMaterials(planet))
+  const maxResources = selectPlanetsMaxResources()
+
+  function showResource(r: PlanetResource) {
+    const percentage = r.perDay / maxResources[r.material]
+    return (<div style={{ justifyContent: "flex-end", alignItems: "flex-end", display: "flex" }}>
+      {numberForUser(r.perDay) + materialTypeIcon[r.type]}
+      <div className={styles.resourceIndicator} style={{ background: `linear-gradient(transparent ${(1 - percentage) * 100}%, rgb(${(1 - percentage) * 255}, ${percentage * 255}, 0) 0%)` }} />
+    </div>)
+  }
+  function getResourceTooltip(r: PlanetResource): string {
+    return `${r.material}
+Type: ${r.type} ➤ ${BUILDING_FOR_RESOURCE_TYPE[r.type]}
+Per day: ${numberForUser(r.perDay)}
+Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}% of ${numberForUser(maxResources[r.material])}`
+  }
+
+  const planetName = planetId == planet.name ? "" : planet.name;
+
+  return (<tr>
+    <td>{index + 1}</td>
+    <td>{jumps}</td>
+    <td title={planetName} style={{ textAlign: "left" }}>{planetId + (planetId == planet.name ? "" : " (" + planet.name + ")")}</td>
+    <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
+    {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
+      const used = mats.filter(m => planetMaterials.indexOf(m) != -1)[0]
+      return <td key={mats.join()} className={used ? styleForMaterial(materials[used]?.category) : ""}>{used}</td>
+    }).flat()}
+    {
+      materialFilter.map(filter => {
+        const pr = planet.resources.filter(r => r.material == filter).shift()
+        if (pr)
+          return <td key={filter} className={styleForMaterial(materials[filter]?.category)} title={getResourceTooltip(pr)}>
+            {showResource(pr)}
+          </td>
+        return <td key={filter}></td>
+      })
+    }
+    {
+      planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r =>
+        <td key={r.material} className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }} title={getResourceTooltip(r)}>
+          {<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}
+        </td>
+      ).concat(new Array(5).fill(0).map((_, idx) => <td key={"filler" + idx} />)).slice(0, 5).flat()
+    }
+    {Object.entries(cxDistances).map(([cx, distPerSystem]) => <td key={cx}>{distPerSystem.get(planet.system)}</td>)}
+    <td>
+      {planet.factionCode ?? "-"}
+    </td>
+    <td><Infrastructure infrastructure={planet.infrastructure} /></td>
+  </tr>)
+}
+
+const infrastructureIcons = {
+  "ADM": "🏛️",
+  "LM": "🏪",
+  "COG": "🏦",
+  "PWH": "🏬",
+  "PSY": "🏗️",
+}
+
+const infrastructureAvailableKey: Record<keyof typeof infrastructureIcons, keyof PlanetInfrastructure> = {
+  "ADM": "hasAdministrationCenter",
+  "LM": "hasLocalMarket",
+  "COG": "hasChamberOfCommerce",
+  "PWH": "hasWarehouse",
+  "PSY": "hasShipyard",
+}
+function Infrastructure({ infrastructure }: { infrastructure: PlanetInfrastructure }) {
+  const buildings = selectBuildings()
+
+  function showInfra(code: keyof typeof infrastructureIcons) {
+    if (infrastructure[infrastructureAvailableKey[code]])
+      return <span title={code + "\n" + buildingTranslations[buildings[code].name].name}>{infrastructureIcons[code]}</span>
+  }
+
+  return <>
+    {Object.keys(infrastructureIcons).map(code => showInfra(code as keyof typeof infrastructureIcons)).flat()}
+  </>
 }
 
 // function SortableTable() {

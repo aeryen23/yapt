@@ -114,7 +114,7 @@ const WorldDataSlice = createSlice({
   }
 })
 
-function add(container: Record<string, string[]>, key: string, value: string) {
+function add(container: IdMap<string[]>, key: string, value: string) {
   if (!container[key])
     container[key] = []
   container[key].push(value)
@@ -143,6 +143,11 @@ export function selectPlanetsMaxResources() {
 export function selectSystems() {
   return useAppSelector(state => state.worldData.system.data)
 }
+
+export function selectPlanet(id: string) {
+  return useAppSelector(state => state.worldData.planet.data[id])
+}
+
 
 type DataTypes = "material" | "building" | "planet" | "system"
 export function hasData(types: DataTypes[]) {
