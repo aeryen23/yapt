@@ -1,10 +1,14 @@
+import { createSelector } from "@reduxjs/toolkit"
 import React, { useEffect, useMemo, useState } from "react"
+import { useAppDispatch, useAppSelector } from "../../app/hooks"
+import { RootState } from "../../app/store"
 import { buildingTranslations } from "../../world-data/translations"
 import { getPlanetMaterials, PlanetInfrastructure, PlanetResource, System } from "../../world-data/world-data"
 import { hasData, IdMap, selectBuildings, selectMaterials, selectPlanet, selectPlanetsMaxResources, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
+import { clearMaterialFilter, resetBuildingMaterialFilter, selectBuildingMaterialFilter, selectMaterialFilter, selectMaterialFilterAnd, selectMaxJumps, selectStartSystem, setMaterialFilterAnd, setMaxJumps, setStartSystem, toggleBuildingMaterialFilter, toggleMaterialFilter } from "./planet-search-slice"
 import styles from "./planet-search.module.css"
 
 /*
@@ -53,21 +57,25 @@ export function PlanetSearch() {
     return <Loading />
   return <PlanetSearchInternal />
 }
+
+const CX_SYSTEMS = { AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }
+
 function PlanetSearchInternal() {
+  const dispatch = useAppDispatch()
   const systems = selectSystems()
   const { planets, planetsPerSystem } = selectPlanetsPerSystem()
   const maxResources = selectPlanetsMaxResources()
 
-  const [startSystem, setStartSystem] = useState("OT-580")
-  const [materialFilter, setMaterialFilter] = useState([] as string[])
-  const [materialFilterAnd, setMaterialFilterAnd] = useState(false)
-  const [maxJumps, setMaxJumps] = useState(10 as number | undefined)
-  const [buildingMaterials, setBuildingMaterials] = useState(["MCG", "AEF", "SEA"]) // TODO: save this state permanently + start with all?!
+  const startSystem = selectStartSystem()
+  const materialFilter = selectMaterialFilter()
+  const materialFilterAnd = selectMaterialFilterAnd()
+  const maxJumps = selectMaxJumps()
+  const buildingMaterials = selectBuildingMaterialFilter()
   const [sortColumn, setSortColumn] = useState(0)
 
 
   const cxDistances = useMemo(() =>
-    Object.entries({ AI1: "ZV-307", CI1: "UV-351", IC1: "VH-331", NC1: "OT-580" }).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
+    Object.entries(CX_SYSTEMS).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
     , [systems])
 
 
@@ -77,13 +85,13 @@ function PlanetSearchInternal() {
     return calculateSystemDistances(startSystem, systems)
   }, [startSystem, systems])
 
-  const matchingPlanets = useMemo(() => {
+  const nearPlanets = useMemo(() => {
     console.time("Evaluate planets")
 
     // TODO: split systems vs found planets, so planets can be more easily be filtered/sorted without needing to reiterate the jump counts
     const newResult: SingleResult[] = []
     for (const [system, jumps] of systemDistances) {
-      if (maxJumps && jumps > maxJumps)
+      if (maxJumps !== undefined && jumps > maxJumps)
         continue
       for (const planetId of planetsPerSystem[system]) {
         let hasAllBuildingCosts = true
@@ -101,7 +109,11 @@ function PlanetSearchInternal() {
       }
     }
     console.timeEnd("Evaluate planets")
-    newResult.sort((a, b) => {
+    return newResult
+  }, [systemDistances, maxJumps, systems, planetsPerSystem, systemDistances, buildingMaterials])
+
+  const matchingPlanets = useMemo(() => {
+    const result = [...nearPlanets].sort((a, b) => {
       // TODO: sort necessary building mats (per column), both mats alphabetically, then no mat
       // TODO: sorting does not work when e.g. mat filter changes. also using a number does not work when columns can be added in the middle
       const res = (() => {
@@ -128,8 +140,8 @@ function PlanetSearchInternal() {
       return res
     })
 
-    return newResult
-  }, [systems, planetsPerSystem, systemDistances, maxJumps, buildingMaterials, sortColumn, cxDistances])
+    return result
+  }, [nearPlanets, sortColumn, cxDistances])
 
   // Settings:
   // - checkboxes for building materials
@@ -137,20 +149,6 @@ function PlanetSearchInternal() {
   // - already existing planetary buildings?
   // - minimum production/day
 
-  function toggleMaterialFilter(mat: string) {
-    if (materialFilter.indexOf(mat) == -1)
-      setMaterialFilter([...materialFilter, mat])
-    else {
-      setMaterialFilter(materialFilter.filter(m => m != mat))
-      // TODO: if filtered material as the current sorting one, reset sort order
-    }
-  }
-  function toggleBuildingMaterialFilter(mat: string) {
-    if (buildingMaterials.indexOf(mat) == -1)
-      setBuildingMaterials([...buildingMaterials, mat])
-    else
-      setBuildingMaterials(buildingMaterials.filter(m => m != mat))
-  }
   // TODO: color filtered materials under planet list as well
   // TODO: show max available material rate in material filter of currently available planets + hide materials for which no planets are available anymore
   // TODO: add option to hide planets without resources even if no filter is selected
@@ -183,35 +181,37 @@ function PlanetSearchInternal() {
   return <div>
     {/* <SortableTable /> */}
     <div style={{ border: "1 solid white" }}>
-      System: <input value={startSystem} onChange={e => { setStartSystem(e.target.value) }} list="LIST_systems"></input>
-      Jumps: <input type="number" value={maxJumps} onChange={e => {
-        if (!e.target.value) {
-          setMaxJumps(undefined)
-          return
-        }
+      System: <input value={startSystem} onChange={e => { dispatch(setStartSystem(e.target.value)) }} list="LIST_systems"></input>
+      Jumps: <input type="number" value={maxJumps ?? ""} onChange={e => {
         const jumps = parseInt(e.target.value, 10)
-        if (jumps >= 0 && jumps <= 100)
-          setMaxJumps(jumps)
+        dispatch(setMaxJumps(isNaN(jumps) ? undefined : jumps))
       }} />
+      Quick select: {Object.values(CX_SYSTEMS).map(id => <a key={id} style={{ margin: 1 }} onClick={() => dispatch(setStartSystem(id))}>{systems[id].name}</a>).flat()}
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
       {
         allResources.map(o => o.materials.map(mat => <div key={mat} style={{ margin: 1 }}>
-          <MaterialIcon key={mat} materialId={mat} size={32} isSelected={materialFilter.indexOf(mat) != -1} onClick={toggleMaterialFilter} />
+          <MaterialIcon key={mat} materialId={mat} size={32} isSelected={materialFilter.indexOf(mat) != -1} onClick={material => dispatch(toggleMaterialFilter(material))} />
         </div>)).flat()
       }
       <div style={{ margin: 1, position: "relative" }}>
-        <Icon label="Clear" size={32} colorClass="" onClick={() => setMaterialFilter([])} />
+        <Icon label="Clear" size={32} colorClass="" onClick={() => dispatch(clearMaterialFilter())} />
       </div>
       <div style={{ margin: 1, position: "relative" }}>
-        <Icon label={materialFilterAnd ? "ALL" : "ANY"} hoverText="Toggle filtering any/all selected materials" size={32} colorClass="" onClick={() => setMaterialFilterAnd(!materialFilterAnd)} />
+        <Icon label={materialFilterAnd ? "ALL" : "ANY"} hoverText="Toggle filtering any/all selected materials" size={32} colorClass="" onClick={() => dispatch(setMaterialFilterAnd(!materialFilterAnd))} />
       </div>
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
       <Icon label="🌱" hoverText="Fertility" size={32} />
       {additionalBuildingMaterials.map(mat => <div key={mat} style={{ margin: 1 }}>
-        <MaterialIcon key={mat} materialId={mat} size={32} isSelected={buildingMaterials.indexOf(mat) != -1} onClick={toggleBuildingMaterialFilter} />
+        <MaterialIcon key={mat} materialId={mat} size={32} isSelected={buildingMaterials.indexOf(mat) != -1} onClick={mat => dispatch(toggleBuildingMaterialFilter(mat))} />
       </div>)}
+      <div style={{ margin: 1, position: "relative" }}>
+        <Icon label="Reset" size={32} colorClass="" onClick={() => dispatch(resetBuildingMaterialFilter(false))} />
+      </div>
+      <div style={{ margin: 1, position: "relative" }}>
+        <Icon label="All" hoverText="Select all building materials" size={32} colorClass="" onClick={() => dispatch(resetBuildingMaterialFilter(true))} />
+      </div>
     </div>
     <div>
       <table className={styles.table}>
@@ -240,7 +240,10 @@ function PlanetSearchInternal() {
               }
             }
             return materialFilterAnd
-          }).map((r, index) => <PlanetResult key={r.planet} index={index} planetId={r.planet} jumps={r.jumps} materialFilter={materialFilter} cxDistances={cxDistances} />)}
+          }).map((r, index) => <tr key={r.planet}>
+            <td>{index + 1}</td>
+            <PlanetSearchResult planetId={r.planet} startSystem={startSystem} materialFilter={materialFilter} cxDistances={cxDistances} />
+          </tr>)}
         </tbody>
       </table>
     </div>
@@ -316,17 +319,33 @@ function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
   }
   return evaluated
 }
+
+/*
+- createSelector does only cache the last call to it (parameters) => can't really be used for multiple locations with different input parameters
+  => should create 1 selector instance per component -> can not share between components
+- should store the selected start system -> could calculate when setting + planets update
+- try something with createApi?
+*/
+const selectSystemDistances = createSelector([(state: RootState) => state.worldData.system.data, (state: RootState, startSystem: string) => startSystem], (systems, startSystem) => {
+  return calculateSystemDistances(startSystem, systems)
+})
+
+function getSystemDistances(startSystem: string) {
+  return useAppSelector(state => selectSystemDistances(state, startSystem))
+}
+
 const BUILDING_FOR_RESOURCE_TYPE: Record<PlanetResource["type"], string> = {
   "GASEOUS": "COL",
   "LIQUID": "RIG",
   "MINERAL": "EXT",
 }
 
-function PlanetResult({ index, planetId, jumps, materialFilter, cxDistances }: { index: number, planetId: string, jumps: number, materialFilter: string[], cxDistances: Record<string, Map<string, number>> }) {
+function PlanetSearchResult({ planetId, startSystem, materialFilter, cxDistances }: { planetId: string, startSystem: string, materialFilter: string[], cxDistances: Record<string, Map<string, number>> }) {
   const planet = selectPlanet(planetId)
   const materials = selectMaterials()
   const planetMaterials = Object.keys(getPlanetMaterials(planet))
   const maxResources = selectPlanetsMaxResources()
+  const distances = getSystemDistances(startSystem)
 
   function showResource(r: PlanetResource) {
     const percentage = r.perDay / maxResources[r.material]
@@ -344,9 +363,8 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
 
   const planetName = planetId == planet.name ? "" : planet.name;
 
-  return (<tr>
-    <td>{index + 1}</td>
-    <td>{jumps}</td>
+  return (<>
+    <td>{distances.get(planet.system)}</td>
     <td title={planetName} style={{ textAlign: "left" }}>{planetId + (planetId == planet.name ? "" : " (" + planet.name + ")")}</td>
     <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
     {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
@@ -375,7 +393,7 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
       {planet.factionCode ?? "-"}
     </td>
     <td><Infrastructure infrastructure={planet.infrastructure} /></td>
-  </tr>)
+  </>)
 }
 
 const infrastructureIcons = {
