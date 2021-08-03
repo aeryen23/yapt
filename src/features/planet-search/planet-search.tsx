@@ -17,10 +17,22 @@ import styles from "./planet-search.module.css"
 - different cursor hover sorting headers
 - explanation(help) window explaining what the fields mean
 - filter out planets with resources less than a specified value/percentage
-- show max resource amount, e.g. on tooltip of bar / on material filter
 - show infrastructure projects + filter?
 - better visibility for selected (building-)material filter
 - check layout on phone
+
+  Settings:
+  - fertile
+  - already existing planetary buildings?
+  - minimum production/day
+
+  TODO: show max available material rate in material filter of currently available planets + hide materials for which no planets are available anymore
+  TODO: add option to hide planets without resources even if no filter is selected
+  TODO: PERF!!!
+  TODO: make selected more visible
+
+  -----
+  and if you're adding counters, another useful one would be  a "number of planets containing this resourse", on the tooltip
 */
 
 type SingleResult = {
@@ -110,7 +122,7 @@ function PlanetSearchInternal() {
     }
     console.timeEnd("Evaluate planets")
     return newResult
-  }, [systemDistances, maxJumps, systems, planetsPerSystem, systemDistances, buildingMaterials])
+  }, [systemDistances, maxJumps, planetsPerSystem, buildingMaterials])
 
   const matchingPlanets = useMemo(() => {
     const result = [...nearPlanets].sort((a, b) => {
@@ -143,17 +155,6 @@ function PlanetSearchInternal() {
     return result
   }, [nearPlanets, sortColumn, cxDistances])
 
-  // Settings:
-  // - checkboxes for building materials
-  // - fertile
-  // - already existing planetary buildings?
-  // - minimum production/day
-
-  // TODO: color filtered materials under planet list as well
-  // TODO: show max available material rate in material filter of currently available planets + hide materials for which no planets are available anymore
-  // TODO: add option to hide planets without resources even if no filter is selected
-  // TODO: PERF!!!
-  // TODO: make selected more visible
   function sortByColumn(column: number) {
     if (column == 0 || column == 2 || column >= NUM_HEADERS)
       return () => setSortColumn(column)
@@ -416,7 +417,7 @@ function Infrastructure({ infrastructure }: { infrastructure: PlanetInfrastructu
 
   function showInfra(code: keyof typeof infrastructureIcons) {
     if (infrastructure[infrastructureAvailableKey[code]])
-      return <span title={code + "\n" + buildingTranslations[buildings[code].name].name}>{infrastructureIcons[code]}</span>
+      return <span key={code} title={code + "\n" + buildingTranslations[buildings[code].name].name}>{infrastructureIcons[code]}</span>
   }
 
   return <>
