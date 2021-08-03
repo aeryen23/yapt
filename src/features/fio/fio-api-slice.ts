@@ -206,7 +206,7 @@ export const apiSlice = createApi({
     }),
     basecount: builder.query<{ CompanyCode: string; BaseCount: number; }[], void>({
       query() {
-        return "/planet/basecount"
+        return "/planet/basecount/1"
       },
       keepUnusedDataFor: 10 * 60
     }),
