@@ -28,6 +28,7 @@
     "eslint": "^7.31.0",
     "eslint-plugin-react": "^7.24.0",
     "typescript": "^4.3.2",
-    "vite": "^2.3.7"
+    "vite": "^2.3.7",
+    "vite-plugin-git-revision": "^0.1.9"
   }
 }

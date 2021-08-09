@@ -32,6 +32,9 @@ export function Settings() {
 
   return (<table className={styles.table}>
     <tbody>
+      <tr className={styles.header}><td colSpan={2}>Release</td></tr>
+      <tr><td>Date</td><td>{new Date(RELEASE_DATE).toLocaleDateString()}</td></tr>
+      <tr><td>Version</td><td>{GITVERSION}</td></tr>
       <tr className={styles.header}><td colSpan={2}>Fio Data</td></tr>
       <FioState />
       <tr className={styles.header} onClick={handleHiddenDevModeEnable}><td colSpan={2}>Settings</td></tr>
