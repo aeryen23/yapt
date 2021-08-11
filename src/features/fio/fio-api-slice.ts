@@ -172,7 +172,49 @@ export interface CompanyCXOrderFio {
   Count: number;
   Cost: number;
 }
+export interface CompanyLMOrdersFio {
+  BuyingAds: LMBuySellAd[];
+  SellingAds: LMBuySellAd[];
+  ShippingAds: LMShippingAd[];
+}
+interface LMBaseAd {
+  ContractNaturalId: number;
+  PlanetId: string;
+  PlanetNaturalId: string;
+  PlanetName: string;
+  CreatorCompanyId: string;
+  CreatorCompanyName: string;
+  CreatorCompanyCode: string;
+  DeliveryTime: number;
+  CreationTimeEpochMs: number;
+  ExpiryTimeEpochMs: number;
+  MinimumRating: LMMinimumRating;
+}
+export interface LMBuySellAd extends LMBaseAd {
+  MaterialId: string;
+  MaterialName: string;
+  MaterialTicker: string;
+  MaterialCategory: string;
+  MaterialWeight: number;
+  MaterialVolume: number;
+  MaterialAmount: number;
+  Price: number;
+  PriceCurrency: string;
+}
+export interface LMShippingAd extends LMBaseAd {
+  OriginPlanetId: string;
+  OriginPlanetNaturalId: string;
+  OriginPlanetName: string;
+  DestinationPlanetId: string;
+  DestinationPlanetNaturalId: string;
+  DestinationPlanetName: string;
+  CargoWeight: number;
+  CargoVolume: number;
+  PayoutPrice: number;
+  PayoutCurrency: string;
+}
 
+export type LMMinimumRating = "PENDING" | "F" | "E" | "D" | "C" | "B" | "A"
 
 export const apiSlice = createApi({
   reducerPath: "api",
@@ -224,6 +266,26 @@ export const apiSlice = createApi({
       },
       keepUnusedDataFor: 10 * 60
     }),
+    findCompanyLMOrders: builder.query<CompanyLMOrdersFio, string>({
+      query(companyCode) {
+        return `/localmarket/company/${companyCode}`
+      },
+      transformResponse(response: CompanyLMOrdersFio | undefined) {
+        if (response === undefined)
+          return {
+            BuyingAds: [],
+            SellingAds: [],
+            ShippingAds: [],
+          }
+        return response
+      },
+      keepUnusedDataFor: 10 * 60
+    }),
+    findCompanyBases: builder.query<string[], string>({
+      query(companyCode) {
+        return `/planet/companysearch/${companyCode}`
+      },
+    }),
   }),
 })
 
@@ -233,3 +295,5 @@ const setDefaultPollingInterval = <T extends MyUseQuery>(fn: T, interval = 30 * 
 export const { useFetchPlanetQuery, useFetchPricesQuery } = apiSlice
 export const useBasecountQuery = setDefaultPollingInterval(apiSlice.useBasecountQuery)
 export const useFindCompanyOrdersQuery = setDefaultPollingInterval(apiSlice.useFindCompanyOrdersQuery)
+export const useFindCompanyLMOrdersQuery = setDefaultPollingInterval(apiSlice.useFindCompanyLMOrdersQuery)
+export const useFindCompanyBasesQuery = setDefaultPollingInterval(apiSlice.useFindCompanyBasesQuery)

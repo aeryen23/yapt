@@ -40,3 +40,9 @@
     border-style: solid;
     border-color: rgb(69, 116, 145);
 }
+
+.planetList {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
