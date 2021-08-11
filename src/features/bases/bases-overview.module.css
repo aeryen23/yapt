@@ -1,0 +1,11 @@
+table.planetList {
+    border-collapse: collapse;
+}
+
+table.planetList>tbody>tr {
+    cursor: pointer;
+}
+
+table.planetList>tbody>tr:hover {
+    background-color: gray;
+}

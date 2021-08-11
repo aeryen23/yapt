@@ -11,7 +11,8 @@ import { TabDefinition, TabHeader } from "./features/ui/tabs"
 import { Settings } from "./features/settings/settings"
 import { isDevModeEnabled, isExperimentalMode } from "./features/settings/settings-slice"
 import { FindCompanyOrders } from "./features/commodity-exchange/find-company-orders"
-import { BasesOverview } from "./features/bases/overview"
+import { BasesOverview } from "./features/bases/bases-overview"
+import { BasePage } from "./features/bases/base-page"
 
 const pages: (TabDefinition & { experimental?: boolean, hidden?: boolean })[] = [
   { id: "planetsearch", title: "Search planets", content: PlanetSearch },
@@ -19,7 +20,7 @@ const pages: (TabDefinition & { experimental?: boolean, hidden?: boolean })[] = 
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },
-  { id:"bases", title: "Bases", content: BasesOverview, hidden: true },
+  { id: "bases", title: "Bases", content: BasesOverview, hidden: true },
   { id: "find-company-orders", title: "Find Company Orders", content: FindCompanyOrders, experimental: true },
   { id: "settings", title: "⚙️", content: Settings },
 ]
@@ -44,6 +45,9 @@ function App() {
             <Content />
           </Route>)
         })}
+        <Route exact path="/bases/:id">
+          <BasePage />
+        </Route>
         <Route exact path="/">
           <Redirect to={"/" + visiblePages[0].id} />
         </Route>

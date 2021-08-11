@@ -1,13 +1,14 @@
-import { nanoid } from "@reduxjs/toolkit"
 import { useAppDispatch } from "../../app/hooks"
+import { BuildingCategory } from "../fio/fio-types"
 import { isEmpty } from "../utils/utils"
-import { BaseB, setCurrent, WorkforceStatus } from "./bases-slice"
+import { EXPERTISES } from "./base-page"
+import { BaseB, setSynched, WorkforceStatus } from "./bases-slice"
 
 export function importStorage(text: string, dispatch: ReturnType<typeof useAppDispatch>) {
-  const current: { planet: string, base: BaseB }[] = []
   for (const msg of parseStorage(text)) {
     if (msg.dataVersion == "STORAGE-003-COLONY") {
       const base: BaseB = {
+        planet: msg.colony.naturalId,
         buildings: {},
         inventory: msg.colony.storage.reduce((acc, [mat, amount]) => ({ ...acc, [mat]: amount }), {} as Record<string, number>),
         workforce: {
@@ -17,20 +18,23 @@ export function importStorage(text: string, dispatch: ReturnType<typeof useAppDi
           Engineers: convertWorkforce(msg.colony.workforces.e),
           Scientists: convertWorkforce(msg.colony.workforces.c),
         },
+        experts: EXPERTISES.reduce((acc, e) => ({ ...acc, [e]: 0 }), {} as Record<BuildingCategory, number>),
       }
       for (const building of msg.colony.buildings) {
         if (!base.buildings[building.ticker])
-          base.buildings[building.ticker] = { list: [] }
-        base.buildings[building.ticker].list.push({ condition: building.condition })
+          base.buildings[building.ticker] = { amount: 0, condition: 0, recipes: [] }
+        base.buildings[building.ticker].amount++
+        base.buildings[building.ticker].condition += building.condition
       }
+      for (const b of Object.values(base.buildings))
+        b.condition = b.condition / b.amount
       for (const pLine of msg.colony.productionLines) {
         // pLine.type// building name! not ticker
         // pLine.orders
       }
-      current.push({ planet: msg.colony.naturalId, base })
+      dispatch(setSynched(base))
     }
   }
-  dispatch(setCurrent(current))
 }
 function convertWorkforce(wf: Workforce): WorkforceStatus {
   return {

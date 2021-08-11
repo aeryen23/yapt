@@ -1,6 +1,5 @@
 import { combineReducers, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { useAppSelector } from "../../app/hooks"
-import bases from "../bases/bases-slice";
 import planetSearch from "../planet-search/planet-search-slice";
 
 const devModeSlice = createSlice({
@@ -30,6 +29,5 @@ export function isDevModeEnabled() {
 
 export default combineReducers({
   mode: devModeSlice.reducer,
-  bases,
   planetSearch,
 })
