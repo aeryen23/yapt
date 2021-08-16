@@ -7,7 +7,7 @@ import { PlanetSearch } from "./features/planet-search/planet-search"
 // import { LongtermPlanner } from './features/longterm/longterm'
 import DataLists from "./world-data/data-lists"
 import { PlayerBaseStatistics } from "./features/bases/player-base-statistics"
-import { TabDefinition, TabHeader } from "./features/ui/tabs"
+import { PageSelector, TabDefinition, TabHeader } from "./features/ui/tabs"
 import { Settings } from "./features/settings/settings"
 import { isDevModeEnabled, isExperimentalMode } from "./features/settings/settings-slice"
 import { FindCompanyOrders } from "./features/commodity-exchange/find-company-orders"
@@ -37,7 +37,7 @@ function App() {
     <DataLists />
 
     <div className={styles.App}>
-      <TabHeader tabs={visiblePages} currentTab={currentTab} setCurrentTab={tabId => history.push("/" + tabId)} />
+      <PageSelector tabs={visiblePages} currentTab={currentTab} />
       <Switch>
         {usablePages.map(page => {
           const Content = page.content

@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { NavLink } from "react-router-dom"
 import styles from "./tabs.module.css"
 
 export type TabDefinition = {
@@ -27,6 +28,21 @@ export function TabHeader({ tabs, currentTab, setCurrentTab }: { tabs: TabDefini
         <a className={(active ? styles.tabActive + " " : "") + styles.tab} onClick={() => { setCurrentTab(def.id) }}>
           {def.title ?? def.id}
         </a>
+        <div className={(active ? styles.toggleIndicatorActive + " " : "") + styles.toggleIndicator} />
+      </div>)
+    })}
+  </div>
+}
+
+export function PageSelector({ tabs, currentTab }: { tabs: TabDefinition[], currentTab: string }) {
+  return <div className={styles.tabs}>
+    {tabs.map(def => {
+      const active = def.id == currentTab
+      const url = "/" + def.id;
+      return (<div className={styles.header} key={def.id}>
+        <NavLink activeClassName={styles.tabActive} className={styles.tab} to={url}>
+          {def.title ?? def.id}
+        </NavLink>
         <div className={(active ? styles.toggleIndicatorActive + " " : "") + styles.toggleIndicator} />
       </div>)
     })}
