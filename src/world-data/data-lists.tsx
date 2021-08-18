@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { selectBuildings, selectMaterials, selectPlanets, selectSystems } from "./world-data-slice"
 
 export enum List {
@@ -66,4 +66,15 @@ export function DataListSelector({ list, onSelect }: { list: List, onSelect?: (i
       apply()
     }
   }} />
+}
+
+export function SystemInput({ system, onChange }: { system: string, onChange: (system: string) => void }) {
+  const systems = selectSystems()
+  const [currentValue, setCurrentValue] = useState(system)
+  useEffect(() => setCurrentValue(system), [system])
+  return <input value={currentValue} onChange={e => {
+    setCurrentValue(e.target.value)
+    if (systems[e.target.value])
+      onChange(e.target.value)
+  }} list="LIST_systems"></input>
 }

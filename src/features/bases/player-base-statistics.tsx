@@ -24,6 +24,7 @@ export function PlayerBaseStatistics() {
     for (const e of result) {
       e.additional = additional
       additional += e.companies.length
+      e.companies.sort()
     }
     result.sort((a, b) => a.baseCount - b.baseCount)
     return result
@@ -33,9 +34,6 @@ export function PlayerBaseStatistics() {
     return <div>Loading</div>
   if (error)
     return <div>Error: {JSON.stringify(error)}</div>
-
-  const sorted = [...data!]
-  sorted.sort((a, b) => b.BaseCount - a.BaseCount)
 
   const width = 800
   const barHeight = 30

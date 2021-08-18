@@ -1,7 +1,9 @@
 import { createSelector } from "@reduxjs/toolkit"
 import React, { useEffect, useMemo, useState } from "react"
+import { useCallback } from "react"
 import { useAppDispatch, useAppSelector } from "../../app/hooks"
 import { RootState } from "../../app/store"
+import { SystemInput } from "../../world-data/data-lists"
 import { buildingTranslations } from "../../world-data/translations"
 import { getPlanetMaterials, PlanetInfrastructure, PlanetResource, System } from "../../world-data/world-data"
 import { hasData, IdMap, selectBuildings, selectMaterials, selectPlanet, selectPlanetsMaxResources, selectPlanetsPerSystem, selectSystems } from "../../world-data/world-data-slice"
@@ -83,28 +85,43 @@ function PlanetSearchInternal() {
   const materialFilterAnd = selectMaterialFilterAnd()
   const maxJumps = selectMaxJumps()
   const buildingMaterials = selectBuildingMaterialFilter()
-  const [sortColumn, setSortColumn] = useState(0)
-
+  const [sortColumn, setSortColumn] = useState("jumps")
 
   const cxDistances = useMemo(() =>
     Object.entries(CX_SYSTEMS).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
     , [systems])
+  const distanceFromStartSystem = useMemo(() => calculateSystemDistances(startSystem, systems), [systems, startSystem])
 
-
-  const systemDistances = useMemo(() => {
-    if (!systems[startSystem])
-      return new Map<string, number>()
-    return calculateSystemDistances(startSystem, systems)
-  }, [startSystem, systems])
-
-  const nearPlanets = useMemo(() => {
-    console.time("Evaluate planets")
-
-    // TODO: split systems vs found planets, so planets can be more easily be filtered/sorted without needing to reiterate the jump counts
-    const newResult: SingleResult[] = []
-    for (const [system, jumps] of systemDistances) {
+  const matchingSystems = useMemo(() => {
+    console.time("Evaluate systems")
+    const result: string[] = []
+    for (const [system, jumps] of distanceFromStartSystem) {
       if (maxJumps !== undefined && jumps > maxJumps)
         continue
+      result.push(system)
+    }
+    console.timeEnd("Evaluate systems")
+    return result
+  }, [distanceFromStartSystem, maxJumps])
+
+  const allowedByMaterialFilter = useMemo(() => (planetId: string) => {
+    if (materialFilter.length == 0)
+      return true
+    const materials = planets[planetId].resources.map(r => r.material)
+    for (const filter of materialFilter) {
+      if (materials.indexOf(filter) != -1) {
+        if (!materialFilterAnd)
+          return true
+      } else if (materialFilterAnd) {
+        return false
+      }
+    }
+    return materialFilterAnd
+  }, [planets, materialFilter, materialFilterAnd])
+  const matchingPlanets = useMemo(() => {
+    console.time("Evaluate planets")
+    const newResult: string[] = []
+    for (const system of matchingSystems) {
       for (const planetId of planetsPerSystem[system]) {
         let hasAllBuildingCosts = true
         for (const mat of Object.keys(getPlanetMaterials(planets[planetId]))) {
@@ -117,49 +134,50 @@ function PlanetSearchInternal() {
         }
         if (!hasAllBuildingCosts)
           continue
-        newResult.push({ planet: planetId, jumps })
+        if (!allowedByMaterialFilter(planetId))
+          continue
+        newResult.push(planetId)
       }
     }
     console.timeEnd("Evaluate planets")
     return newResult
-  }, [systemDistances, maxJumps, planetsPerSystem, buildingMaterials])
+  }, [matchingSystems, planetsPerSystem, buildingMaterials, allowedByMaterialFilter])
 
-  const matchingPlanets = useMemo(() => {
-    const result = [...nearPlanets].sort((a, b) => {
+  const sortedPlanets = useMemo(() => {
+    console.time("Sorting planets")
+    const result = [...matchingPlanets].sort((a, b) => {
       // TODO: sort necessary building mats (per column), both mats alphabetically, then no mat
       // TODO: sorting does not work when e.g. mat filter changes. also using a number does not work when columns can be added in the middle
+      const getDistanceFromStartSystem = (planet: string) => { return distanceFromStartSystem.get(planets[planet].system) ?? 0 }
       const res = (() => {
-        if (sortColumn == 0)
-          return a.jumps - b.jumps
-        else if (sortColumn == 2)
-          return planets[b.planet].environment.fertility - planets[a.planet].environment.fertility
-        else if (sortColumn >= NUM_HEADERS && sortColumn < NUM_HEADERS + materialFilter.length) {
-          const filter = materialFilter[sortColumn - NUM_HEADERS]
-          function getResourcePerDay(planet: string) {
-            const res = planets[planet].resources.filter(r => r.material == filter)[0]
-            return res ? res.perDay : 0
-          }
-          return getResourcePerDay(b.planet) - getResourcePerDay(a.planet)
-        } else {
-          const cxData = Object.values(cxDistances)[sortColumn - (NUM_HEADERS + materialFilter.length + 5)]!
-          function getJumps(planet: string) { return cxData.get(planets[planet].system)! }
-          return getJumps(a.planet) - getJumps(b.planet)
+        if (materialFilter.includes(sortColumn)) {
+          const getResourcePerDay = (id: string) => planets[id].resources.find(r => r.material == sortColumn)?.perDay ?? 0
+          return getResourcePerDay(b) - getResourcePerDay(a)
         }
+        if (Object.keys(cxDistances).includes(sortColumn)) {
+          const getJumps = (planet: string) => { return cxDistances[sortColumn].get(planets[planet].system)! }
+          return getJumps(a) - getJumps(b)
+        }
+        switch (sortColumn) {
+          case "jumps":
+            return getDistanceFromStartSystem(a) - getDistanceFromStartSystem(b)
+          case "name":
+            return a.localeCompare(b)
+          case "fertility":
+            return planets[b].environment.fertility - planets[a].environment.fertility
+        }
+        console.error("Missing sort handling for ", sortColumn)
         return 0
       })()
+
       if (res == 0)
-        return a.planet.localeCompare(b.planet)
+        return getDistanceFromStartSystem(a) - getDistanceFromStartSystem(b)
       return res
     })
 
+    console.timeEnd("Sorting planets")
     return result
-  }, [nearPlanets, sortColumn, cxDistances])
-
-  function sortByColumn(column: number) {
-    if (column == 0 || column == 2 || column >= NUM_HEADERS)
-      return () => setSortColumn(column)
-    return () => { }
-  }
+  }, [matchingPlanets, planets, sortColumn, cxDistances])
 
   const materials = selectMaterials()
 
@@ -179,10 +197,32 @@ function PlanetSearchInternal() {
     return Object.keys(cat2mats).sort().map(category => ({ category, materials: cat2mats[category].sort() }))
   }, [materials, maxResources])
 
+  const columns = useMemo(() => [
+    { text: "#", title: "Jumps", id: "jumps", sort: true },
+    { text: "Planet", id: "name" },
+    { text: "🌱", title: "Fertility", id: "fertility", sort: true },
+    {
+      text: "🪐", title: `Type
+Rocky or Gaseous`, id: "type"
+    },
+    { text: "💨", title: "Pressure", id: "pressure" },
+    { text: "🌡️", title: "Temperature", id: "temperature" },
+    { text: "⚛️", title: "Gravity", id: "gravity" },
+    ...materialFilter.map(filter => ({ text: filter, id: filter, sort: true })),
+    ...Array(5).fill(0).map((_, index) => ({ text: "", id: "other_resources_" + index })),
+    ...Object.keys(cxDistances).map(cx => ({ text: cx, id: cx, sort: true })),
+    { text: "Faction", id: "faction" },
+    { text: "Infrastructure", id: "infrastructure" },
+  ] as SortableTableColumn[], [materialFilter, cxDistances]);
+
+  useEffect(() => {
+    if (columns.find(a => a.id == sortColumn) === undefined)
+      setSortColumn(columns[0].id)
+  }, [columns, sortColumn])
+
   return <div>
-    {/* <SortableTable /> */}
     <div style={{ border: "1 solid white" }}>
-      System: <input value={startSystem} onChange={e => { dispatch(setStartSystem(e.target.value)) }} list="LIST_systems"></input>
+      System: <SystemInput system={startSystem} onChange={v => dispatch(setStartSystem(v))} />
       Jumps: <input type="number" value={maxJumps ?? ""} onChange={e => {
         const jumps = parseInt(e.target.value, 10)
         dispatch(setMaxJumps(isNaN(jumps) ? undefined : jumps))
@@ -216,34 +256,10 @@ function PlanetSearchInternal() {
     </div>
     <div>
       <table className={styles.table}>
-        <thead>
-          <tr>
-            <th></th>
-            {Object.entries(HEADERS).map(([title, text], index) => <th key={text} title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
-            {materialFilter.map((filter, index) => <th key={filter} title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
-            <th colSpan={5}></th>
-            {Object.keys(cxDistances).map((cx, index) => <th key={cx} onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
-            <th>Faction</th>
-            <th>Infrastructure</th>
-          </tr>
-        </thead>
+        <PlanetSearchResultHeader columns={columns} setSortColumn={setSortColumn} sortColumn={sortColumn} />
         <tbody>
-          {matchingPlanets.filter(r => {
-            if (materialFilter.length == 0)
-              return true
-            const materials = planets[r.planet].resources.map(r => r.material)
-            for (const filter of materialFilter) {
-              if (materials.indexOf(filter) != -1) {
-                if (!materialFilterAnd)
-                  return true
-              } else if (materialFilterAnd) {
-                return false
-              }
-            }
-            return materialFilterAnd
-          }).map((r, index) => <tr key={r.planet}>
-            <td>{index + 1}</td>
-            <PlanetSearchResult planetId={r.planet} startSystem={startSystem} materialFilter={materialFilter} cxDistances={cxDistances} />
+          {sortedPlanets.map(planetId => <tr key={planetId}>
+            <PlanetSearchResult planetId={planetId} startSystem={startSystem} materialFilter={materialFilter} cxDistances={cxDistances} />
           </tr>)}
         </tbody>
       </table>
@@ -289,6 +305,21 @@ const selectedColors = [
   "Aquamarine",
 ]
 selectedColors[-1] = "white"
+
+function PlanetSearchResultHeader({ columns, setSortColumn, sortColumn }: { columns: SortableTableColumn[], setSortColumn: React.Dispatch<React.SetStateAction<string>>, sortColumn: string }) {
+  return (<thead>
+    <tr>
+      {columns.map(col => <th key={col.id} title={col.title} onClick={col.sort ? () => setSortColumn(col.id) : undefined}>{col.text + (col.id == sortColumn ? DOWN : "")}</th>)}
+    </tr>
+    {/* <th></th>
+    {Object.entries(HEADERS).map(([title, text], index) => <th key={text} title={title} onClick={sortByColumn(index)}>{text + (sortColumn == index ? DOWN : "")}</th>)}
+    {materialFilter.map((filter, index) => <th key={filter} title={filter} onClick={sortByColumn(NUM_HEADERS + index)}>{filter + (sortColumn == NUM_HEADERS + index ? DOWN : "")}</th>)}
+    <th colSpan={5}></th>
+    {Object.keys(cxDistances).map((cx, index) => <th key={cx} onClick={sortByColumn(NUM_HEADERS + materialFilter.length + 5 + index)}>{cx + (sortColumn == NUM_HEADERS + materialFilter.length + 5 + index ? DOWN : "")}</th>)}
+    <th>Faction</th>
+    <th>Infrastructure</th> */}
+  </thead>)
+}
 
 function calculateSystemDistances(startSystem: string, systems: IdMap<System>) {
   console.log("calculateSystemDistances", startSystem)
@@ -425,16 +456,58 @@ function Infrastructure({ infrastructure }: { infrastructure: PlanetInfrastructu
   </>
 }
 
-// function SortableTable() {
-//   const headerNames = ["Jumps", "Name", "Rate"];
-//   const entries = [{ key: "1", jumps: 20, name: "A", rate: "10.2" }, { key: "2", jumps: 3, name: "C", rate: "2.5" }, { key: "3", jumps: 10, name: "B", rate: "2.5" }];
-//   const headerKeys = ["jumps", "name", "rate"];
-//   const sortFn = {
-//     jumps: (a: number, b: number) => a - b
-//   }
+type SortableTableColumn = {
+  text: string
+  title?: string
+  id: string
+  sort?: boolean
+}
+// function SortableTableInternal<T extends Record<string, string | number> & { key: string }, K extends keyof T>({ headers, entries, sortFn = {} }: { headers: K[], entries: T[], sortFn?: Partial<Record<K, (a: T[K], b: T[K]) => number>> }) {
 
-//   return <SortableTableInternal headers={["jumps", "name", "rate"]} entries={entries} />
-// }
+function SortableTable<T extends Record<string, string | number> & { key: string }, K extends keyof T>({ columns, entries }: { columns: SortableTableColumn[], entries: T[] }) {
+  const [sortColumn, setSortColumn] = useState(() => columns.find(col => col.sort)?.id ?? "")
+  return (<table className={styles.table}>
+    <thead>
+      <tr>
+        {columns.map(col => <th key={col.id} title={col.title} onClick={col.sort ? () => setSortColumn(col.id) : undefined}>{col.text + (col.id == sortColumn ? DOWN : "")}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {entries.map(entry => (<tr key={entry.id}>
+        {columns.map(col => (<td key={col.id}>{
+          entry[col.id]
+        }</td>)).flat()}
+      </tr>))}
+      {/* {matchingPlanets.filter(r => {
+        if (materialFilter.length == 0)
+          return true
+        const materials = planets[r.planet].resources.map(r => r.material)
+        for (const filter of materialFilter) {
+          if (materials.indexOf(filter) != -1) {
+            if (!materialFilterAnd)
+              return true
+          } else if (materialFilterAnd) {
+            return false
+          }
+        }
+        return materialFilterAnd
+      }).map((r, index) => <tr key={r.planet}>
+        <td>{index + 1}</td>
+        <PlanetSearchResult planetId={r.planet} startSystem={startSystem} materialFilter={materialFilter} cxDistances={cxDistances} />
+      </tr>)} */}
+    </tbody>
+  </table>)
+
+
+  //   const headerNames = ["Jumps", "Name", "Rate"];
+  //   const entries = [{ key: "1", jumps: 20, name: "A", rate: "10.2" }, { key: "2", jumps: 3, name: "C", rate: "2.5" }, { key: "3", jumps: 10, name: "B", rate: "2.5" }];
+  //   const headerKeys = ["jumps", "name", "rate"];
+  //   const sortFn = {
+  //     jumps: (a: number, b: number) => a - b
+  //   }
+
+  //   return <SortableTableInternal headers={["jumps", "name", "rate"]} entries={entries} />
+}
 
 
 // /**
