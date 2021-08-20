@@ -4,7 +4,8 @@
     flex-wrap: wrap;
 }
 
-.cxOrders {
+.cxOrders,
+.lmOrders {
     padding: 0.5em;
 }
 

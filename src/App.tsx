@@ -1,5 +1,5 @@
 import React from "react"
-import { Redirect, Route, Switch, useHistory, useLocation } from "react-router-dom"
+import { Redirect, Route, Switch, useLocation } from "react-router-dom"
 import styles from "./App.module.css"
 // import { BaseScreen } from './features/bases/base-screen'
 import { PlanetSearch } from "./features/planet-search/planet-search"
@@ -20,8 +20,8 @@ const pages: (TabDefinition & { experimental?: boolean, hidden?: boolean })[] = 
   // { title: "Worklist", content: LongtermPlanner, hidden: true },
   // { title: "ROI list", content: RoiList, hidden: true },
   // { title: "Base", content: BaseScreen, hidden: true },
-  { id: "bases", title: "Bases", content: BasesOverview, hidden: true },
-  { id: "find-company-orders", title: "Find Company Orders", content: FindCompanyOrders, experimental: true },
+  { id: "bases", title: "Bases", content: BasesOverview, experimental: true, hidden: true },
+  { id: "view-company", title: "View Company", content: FindCompanyOrders },
   { id: "settings", title: "⚙️", content: Settings },
 ]
 
@@ -30,7 +30,6 @@ function App() {
   const isExperimental = isExperimentalMode()
   const usablePages = isDev ? pages : pages.filter(p => !p.hidden)
   const visiblePages = isExperimental || isDev ? usablePages : usablePages.filter(p => !p.experimental)
-  const history = useHistory()
   const currentTab = useLocation().pathname.substr(1)
 
   return (<>

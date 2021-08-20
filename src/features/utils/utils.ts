@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom"
 
 export function distinctStable<T>(array: T[]): T[] {
   const result = []
@@ -20,4 +21,13 @@ export function isEmpty(obj: Record<any, any>) {
   for (const i in obj)
     return false
   return true
+}
+
+export function useQuery(): URLSearchParams;
+export function useQuery(param: string): string | null;
+export function useQuery(param?: string) {
+  const result = new URLSearchParams(useLocation().search);
+  if (param !== undefined)
+    return result.get(param)
+  return result
 }

@@ -1,11 +1,20 @@
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
+import { useHistory } from "react-router-dom"
 import { useBasecountQuery } from "../fio/fio-api-slice"
+import { useQuery } from "../utils/utils"
 import styles from "./chart.module.css"
 
 type Entry = { baseCount: number, companies: string[], additional: number }
 
+function parse(value: string | null) {
+  if (value === null)
+    return null
+  return parseInt(value, 10)
+}
 export function PlayerBaseStatistics() {
   const { data, error, isFetching } = useBasecountQuery()
+  const showCompaniesWithBaseCount = parse(useQuery("selected"))
+  const history = useHistory()
 
   const processedData = useMemo(() => {
     const result = [] as Entry[]
@@ -40,19 +49,24 @@ export function PlayerBaseStatistics() {
   const avgValue = processedData.length > 0 ? processedData.reduce((sum, a) => sum + a.companies.length, 0) / processedData.length : 1
   const advance = Math.trunc(width / avgValue)
   const barGroups = processedData.map((d, i) => <g key={i} transform={`translate(0, ${i * barHeight})`}>
-    <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, additional: d.additional, title: d.companies.join(" ") }} barHeight={barHeight} maxWidth={width} advance={advance} />
+    <BarGroup data={{ name: d.baseCount.toString(), value: d.companies.length, additional: d.additional, title: d.companies.join(" ") }}
+      barHeight={barHeight} maxWidth={width} advance={advance}
+      onClick={() => history.push("/basecount?selected=" + d.baseCount)} />
   </g>)
-  return (<svg width={width + 20} height="300" >
-    <g className={styles.container}>
-      <text className={styles.title} x="10" y="30">Player bases by count</text>
-      <g className={styles.chart} transform="translate(15,60)">
-        {barGroups}
+  return (<div>
+    <svg width={width + 20} height="300" >
+      <g className={styles.container}>
+        <text className={styles.title} x="10" y="30">Player bases by count</text>
+        <g className={styles.chart} transform="translate(15,60)">
+          {barGroups}
+        </g>
       </g>
-    </g>
-  </svg>)
+    </svg>
+    {showCompaniesWithBaseCount && <CompaniesWithBaseCount count={showCompaniesWithBaseCount} companies={processedData.find(a => a.baseCount == showCompaniesWithBaseCount)?.companies ?? []} />}
+  </div>)
 }
 
-function BarGroup({ data, barHeight, maxWidth, advance = 10 }: { data: { name: string, value: number, additional: number, title: string }, barHeight: number, maxWidth: number, advance?: number }) {
+function BarGroup({ data, barHeight, maxWidth, advance = 10, onClick }: { data: { name: string, value: number, additional: number, title: string }, barHeight: number, maxWidth: number, advance?: number, onClick: () => void }) {
   const barPadding = 2
   const barColour = "#348AA7"
   const widthScale = (d: number) => d * advance
@@ -62,7 +76,7 @@ function BarGroup({ data, barHeight, maxWidth, advance = 10 }: { data: { name: s
   const yMid = barHeight * 0.5
   const xPos = Math.max(width, 60) - 8
 
-  return (<g className={styles["bar-group"]}>
+  return (<g className={styles["bar-group"]} onClick={onClick}>
     <text className={styles["name-label"]} x="-6" y={yMid} alignmentBaseline="middle" >{data.name}</text>
     <g>
       <title>{data.title}</title>
@@ -70,4 +84,14 @@ function BarGroup({ data, barHeight, maxWidth, advance = 10 }: { data: { name: s
       <text className={styles["value-label"]} x={xPos} y={yMid} alignmentBaseline="middle" >{text}</text>
     </g>
   </g>)
+}
+
+function CompaniesWithBaseCount({ count, companies }: { count: number, companies: string[] }) {
+  const history = useHistory()
+  return (<div>
+    <h3>Companies with {count} base{count == 1 ? "" : "s"}</h3>
+    <div className={styles.companyList}>
+      {companies.map(name => <div onClick={() => history.push("/view-company?company=" + name)}>{name}</div>).flat()}
+    </div>
+  </div>)
 }

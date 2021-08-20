@@ -46,3 +46,13 @@
 .container .bar-group:hover .value-label {
     font-size: 0.8em;
 } */
+
+.companyList {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.companyList>div {
+    width: 8ch;
+}

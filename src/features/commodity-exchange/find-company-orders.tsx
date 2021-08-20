@@ -1,20 +1,34 @@
 import React, { useMemo, useState } from "react"
 import styles from "./find-company-orders.module.css"
 import { CompanyCXOrder, CompanyCXOrders, useFindCompanyBasesQuery, useFindCompanyLMOrdersQuery, useFindCompanyOrdersQuery } from "../fio/fio-api-slice"
-import { numberForUser } from "../utils/utils"
+import { numberForUser, useQuery } from "../utils/utils"
+import { useHistory } from "react-router-dom"
 
 export function FindCompanyOrders() {
-  const [company, setCompany] = useState("")
-  const [submittedCompany, setSubmittedCompany] = useState("")
+  const company = useQuery("company")
+  console.log("comp", company)
 
-  return (<div>
-    <form onSubmit={e => { e.preventDefault(); setSubmittedCompany(company) }}><input type="text" name="company" placeholder="Company Code" value={company} onChange={e => setCompany(e.target.value.toUpperCase())}></input><button type="submit">Search</button></form><br />
-    Selected: {submittedCompany}<br />
-    {submittedCompany != "" && <FindCompanyOrdersResult companyCode={submittedCompany} />}
-    {submittedCompany != "" && <FindCompanyLMOrdersResult companyCode={submittedCompany} />}
-    {submittedCompany != "" && <FindCompanyBasesResult companyCode={submittedCompany} />}
-  </div>)
+  if (company)
+    return (<div>
+      <CompanyInput startValue={company} />
+      Selected: {company}<br />
+      {<FindCompanyOrdersResult companyCode={company} />}
+      {<FindCompanyLMOrdersResult companyCode={company} />}
+      {<FindCompanyBasesResult companyCode={company} />}
+    </div>)
+  return <CompanyInput />
 }
+
+function CompanyInput({ startValue = "" }: { startValue?: string }) {
+  const [company, setCompany] = useState(startValue)
+  const history = useHistory()
+
+  return (<form onSubmit={e => { e.preventDefault(); history.push("/view-company?company=" + company) }}>
+    <input type="text" name="company" placeholder="Company Code" value={company} onChange={e => setCompany(e.target.value.toUpperCase())}></input>
+    <button type="submit">Search</button>
+  </form>)
+}
+
 function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
   const { data, isFetching, error } = useFindCompanyOrdersQuery(companyCode)
   const orders = useMemo(() => {
@@ -40,42 +54,41 @@ function FindCompanyOrdersResult({ companyCode }: { companyCode: string }) {
   return (<div>
     <h4>CX Orders</h4>
     <div className={styles.allCxOrders}>
-      {
-        orderyByCX.map(cx => {
-          const salesTotal = calcTotal(orders[cx], true)
-          const buysTotal = calcTotal(orders[cx], false)
+      {orderyByCX.map(cx => {
+        const salesTotal = calcTotal(orders[cx], true)
+        const buysTotal = calcTotal(orders[cx], false)
 
-          return <div key={cx} className={styles.cxOrders}>
-            {cx}
-            <table className={styles.table}>
-              <tbody>
-                <tr>
-                  <td>Mat</td>
-                  <td>Type</td>
-                  <td>Quantity</td>
-                  <td>Limit</td>
-                  <td>Total</td>
-                </tr>
-                {
-                  orders[cx].map(o => [
-                    ...createOrderRow(o.material, o.sells, true),
-                    ...createOrderRow(o.material, o.buys, false),
-                  ]).flat()
-                }
-                {salesTotal > 0 && <tr className={styles.summary}>
-                  <td colSpan={2}>Total Sales</td>
-                  <td></td>
-                  <td className={styles.orderSell} colSpan={2}>{numberForUser(salesTotal)}</td>
-                </tr>}
-                {buysTotal > 0 && <tr className={salesTotal > 0 ? "" : styles.summary}>
-                  <td colSpan={2}>Total Buys</td>
-                  <td></td>
-                  <td className={styles.orderBuy} colSpan={2}>{numberForUser(buysTotal)}</td>
-                </tr>}
-              </tbody>
-            </table>
-          </div>
-        }).flat()
+        return <div key={cx} className={styles.cxOrders}>
+          {cx}
+          <table className={styles.table}>
+            <tbody>
+              <tr>
+                <td>Mat</td>
+                <td>Type</td>
+                <td>Quantity</td>
+                <td>Limit</td>
+                <td>Total</td>
+              </tr>
+              {
+                orders[cx].map(o => [
+                  ...createOrderRow(o.material, o.sells, true),
+                  ...createOrderRow(o.material, o.buys, false),
+                ]).flat()
+              }
+              {salesTotal > 0 && <tr className={styles.summary}>
+                <td colSpan={2}>Total Sales</td>
+                <td></td>
+                <td className={styles.orderSell} colSpan={2}>{numberForUser(salesTotal)}</td>
+              </tr>}
+              {buysTotal > 0 && <tr className={salesTotal > 0 ? "" : styles.summary}>
+                <td colSpan={2}>Total Buys</td>
+                <td></td>
+                <td className={styles.orderBuy} colSpan={2}>{numberForUser(buysTotal)}</td>
+              </tr>}
+            </tbody>
+          </table>
+        </div>
+      }).flat()
       }
     </div>
   </div>)
@@ -110,9 +123,9 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
   return (<div>
     <h4>LM Orders</h4>
     <div className={styles.allCxOrders}>
-      {data.BuyingAds.length == 0 ? null : (<div key="buying">
+      {data.BuyingAds.length == 0 ? null : (<div key="buying" className={styles.lmOrders}>
         <h4>Buying</h4>
-        {/* <table className={styles.table}>
+        <table className={styles.table}>
           <thead>
             <tr>
               <td>Mat</td>
@@ -133,9 +146,9 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
               </tr>)).flat()
             }
           </tbody>
-        </table> */}
+        </table>
       </div>)}
-      {data.SellingAds.length == 0 ? null : (<div key="selling">
+      {data.SellingAds.length == 0 ? null : (<div key="selling" className={styles.lmOrders}>
         <h4>Selling</h4>
         <table className={styles.table}>
           <thead>
@@ -160,7 +173,7 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
           </tbody>
         </table>
       </div>)}
-      {data.ShippingAds.length == 0 ? null : (<div key="shipping">
+      {data.ShippingAds.length == 0 ? null : (<div key="shipping" className={styles.lmOrders}>
         <h4>Shipping</h4>
         <table className={styles.table}>
           <thead>
@@ -199,7 +212,7 @@ function FindCompanyBasesResult({ companyCode }: { companyCode: string }) {
     return <div>Error: {JSON.stringify(error)}</div>
 
   return (<div>
-    <h4>Planets</h4>
+    <h4>Bases on planets</h4>
     <div className={styles.planetList}>
       {data?.map(planet => <div key={planet}>{planet}</div>).flat()}
     </div>
