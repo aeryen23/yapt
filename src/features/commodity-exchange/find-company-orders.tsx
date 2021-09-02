@@ -133,16 +133,18 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
               <td>Total</td>
               <td>Per Unit</td>
               <td>Time</td>
+              <td>Planet</td>
             </tr>
           </thead>
           <tbody>
             {
-              data.BuyingAds.map((ad, idx) => (<tr key={idx}>
+              [...data.BuyingAds].sort((a, b) => a.PlanetName.localeCompare(b.PlanetName)).map((ad, idx) => (<tr key={idx}>
                 <td>{ad.MaterialTicker}</td>
                 <td>{ad.MaterialAmount}</td>
                 <td>{ad.Price + " " + ad.PriceCurrency}</td>
                 <td>{numberForUser(ad.Price / ad.MaterialAmount)}</td>
                 <td>{ad.DeliveryTime}</td>
+                <td>{ad.PlanetName}</td>
               </tr>)).flat()
             }
           </tbody>
@@ -158,16 +160,18 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
               <td>Total</td>
               <td>Per Unit</td>
               <td>Time</td>
+              <td>Planet</td>
             </tr>
           </thead>
           <tbody>
             {
-              data.SellingAds.map((ad, idx) => (<tr key={idx}>
+              [...data.SellingAds].sort((a, b) => a.PlanetName.localeCompare(b.PlanetName)).map((ad, idx) => (<tr key={idx}>
                 <td>{ad.MaterialTicker}</td>
                 <td>{ad.MaterialAmount}</td>
                 <td>{ad.Price + " " + ad.PriceCurrency}</td>
                 <td>{numberForUser(ad.Price / ad.MaterialAmount)}</td>
                 <td>{ad.DeliveryTime}</td>
+                <td>{ad.PlanetName}</td>
               </tr>)).flat()
             }
           </tbody>
@@ -184,17 +188,19 @@ function FindCompanyLMOrdersResult({ companyCode }: { companyCode: string }) {
               <td>Total</td>
               <td>Per t/m³</td>
               <td>Time</td>
+              <td>Planet</td>
             </tr>
           </thead>
           <tbody>
             {
-              data.ShippingAds.map((ad, idx) => (<tr key={idx}>
+              [...data.ShippingAds].sort((a, b) => a.PlanetName.localeCompare(b.PlanetName)).map((ad, idx) => (<tr key={idx}>
                 <td>{ad.OriginPlanetNaturalId}</td>
                 <td>{ad.DestinationPlanetNaturalId}</td>
                 <td>{numberForUser(ad.CargoWeight) + "t / " + numberForUser(ad.CargoVolume) + "m³"}</td>
                 <td>{ad.PayoutPrice + " " + ad.PayoutCurrency}</td>
                 <td>{numberForUser(ad.PayoutPrice / Math.max(ad.CargoVolume, ad.CargoWeight))}</td>
                 <td>{ad.DeliveryTime}</td>
+                <td>{ad.PlanetName}</td>
               </tr>)).flat()
             }
           </tbody>
