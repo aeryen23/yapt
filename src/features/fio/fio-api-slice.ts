@@ -237,7 +237,7 @@ export const apiSlice = createApi({
     }),
     fetchCXTicker: builder.query<CXTickerInfo, string>({
       query(ticker) {
-        return `/exchange/${ticker}`
+        return `/exchange/${ticker}` // /all /full
       }
     }),
     fetchPrices: builder.query<PriceInfo[], void>({

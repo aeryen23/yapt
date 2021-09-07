@@ -10,7 +10,7 @@ import { hasData, IdMap, selectBuildings, selectMaterials, selectPlanet, selectP
 import { ResourceType } from "../fio/fio-types"
 import { MaterialIcon, Icon, styleForMaterial } from "../ui/icons"
 import { isEmpty, numberForUser } from "../utils/utils"
-import { clearMaterialFilter, resetBuildingMaterialFilter, selectBuildingMaterialFilter, selectMaterialFilter, selectMaterialFilterAnd, selectMaxJumps, selectStartSystem, setMaterialFilterAnd, setMaxJumps, setStartSystem, toggleBuildingMaterialFilter, toggleMaterialFilter } from "./planet-search-slice"
+import { clearMaterialFilter, resetBuildingMaterialFilter, selectBuildingMaterialFilter, selectMaterialFilter, selectMaterialFilterAnd, selectMaxJumps, selectMinimumExtractionRatePercentage, selectStartSystem, setMaterialFilterAnd, setMaxJumps, setMinimumExtractionRatePercentage, setStartSystem, toggleBuildingMaterialFilter, toggleMaterialFilter } from "./planet-search-slice"
 import styles from "./planet-search.module.css"
 
 /*
@@ -86,6 +86,7 @@ function PlanetSearchInternal() {
   const maxJumps = selectMaxJumps()
   const buildingMaterials = selectBuildingMaterialFilter()
   const [sortColumn, setSortColumn] = useState("jumps")
+  const minimumExtractionRatePercentage = selectMinimumExtractionRatePercentage()
 
   const cxDistances = useMemo(() =>
     Object.entries(CX_SYSTEMS).reduce((acc, [cx, system]) => ({ ...acc, [cx]: calculateSystemDistances(system, systems) }), {} as Record<string, Map<string, number>>)
@@ -103,21 +104,38 @@ function PlanetSearchInternal() {
     console.timeEnd("Evaluate systems")
     return result
   }, [distanceFromStartSystem, maxJumps])
+  const minRates: Record<string, number> | undefined = useMemo(() => {
+    if (!minimumExtractionRatePercentage || minimumExtractionRatePercentage == 0)
+      return undefined
+    return Object.entries(maxResources).reduce((acc, [mat, rate]) => ({ ...acc, [mat]: rate * minimumExtractionRatePercentage / 100 }), {} as Record<string, number>)
+  }, [minimumExtractionRatePercentage, maxResources])
 
   const allowedByMaterialFilter = useMemo(() => (planetId: string) => {
-    if (materialFilter.length == 0)
-      return true
-    const materials = planets[planetId].resources.map(r => r.material)
-    for (const filter of materialFilter) {
-      if (materials.indexOf(filter) != -1) {
-        if (!materialFilterAnd)
-          return true
-      } else if (materialFilterAnd) {
+    if (materialFilter.length == 0) {
+      if (minRates) {
+        for (const { material, perDay } of planets[planetId].resources)
+          if (minRates[material] <= perDay)
+            return true
         return false
       }
+      return true
     }
-    return materialFilterAnd
-  }, [planets, materialFilter, materialFilterAnd])
+    const materials = planets[planetId].resources.map(r => r.material)
+    if (minRates && materials.length == 0)
+      return false
+    let numMatchingMaterials = 0
+    for (const { material, perDay } of planets[planetId].resources) {
+      if (minRates && minRates[material] > perDay)
+        continue
+      if (materialFilter.indexOf(material) != -1) {
+        if (materialFilterAnd)
+          ++numMatchingMaterials
+        else
+          return true
+      }
+    }
+    return materialFilterAnd && numMatchingMaterials == materialFilter.length
+  }, [planets, materialFilter, materialFilterAnd, minRates])
   const matchingPlanets = useMemo(() => {
     console.time("Evaluate planets")
     const newResult: string[] = []
@@ -228,6 +246,11 @@ Rocky or Gaseous`, id: "type"
         dispatch(setMaxJumps(isNaN(jumps) ? undefined : jumps))
       }} />
       Quick select: {Object.values(CX_SYSTEMS).map(id => <a key={id} style={{ margin: 1 }} onClick={() => dispatch(setStartSystem(id))}>{systems[id].name}</a>).flat()}
+      <label title="Minimum percentage of materials rate in comparison to universe maximum">
+        Minimum Extraction Rate: <input type="number" value={minimumExtractionRatePercentage} min="0" max="100" onChange={e => {
+          const minRateP = parseInt(e.target.value, 10)
+          dispatch(setMinimumExtractionRatePercentage(isNaN(minRateP) ? undefined : minRateP))
+        }} />%</label>
     </div>
     <div style={{ display: "flex", flexWrap: "wrap" }}>
       {
@@ -259,7 +282,7 @@ Rocky or Gaseous`, id: "type"
         <PlanetSearchResultHeader columns={columns} setSortColumn={setSortColumn} sortColumn={sortColumn} />
         <tbody>
           {sortedPlanets.map(planetId => <tr key={planetId}>
-            <PlanetSearchResult planetId={planetId} startSystem={startSystem} materialFilter={materialFilter} cxDistances={cxDistances} />
+            <PlanetSearchResult planetId={planetId} startSystem={startSystem} materialFilter={materialFilter} minRates={minRates} cxDistances={cxDistances} />
           </tr>)}
         </tbody>
       </table>
@@ -372,7 +395,7 @@ const BUILDING_FOR_RESOURCE_TYPE: Record<PlanetResource["type"], string> = {
   "MINERAL": "EXT",
 }
 
-function PlanetSearchResult({ planetId, startSystem, materialFilter, cxDistances }: { planetId: string, startSystem: string, materialFilter: string[], cxDistances: Record<string, Map<string, number>> }) {
+function PlanetSearchResult({ planetId, startSystem, materialFilter, minRates, cxDistances }: { planetId: string, startSystem: string, materialFilter: string[], minRates: Record<string, number> | undefined, cxDistances: Record<string, Map<string, number>> }) {
   const planet = selectPlanet(planetId)
   const materials = selectMaterials()
   const planetMaterials = Object.keys(getPlanetMaterials(planet))
@@ -398,7 +421,7 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
   return (<>
     <td>{distances.get(planet.system)}</td>
     <td title={planetName} style={{ textAlign: "left" }}>{planetId + (planetId == planet.name ? "" : " (" + planet.name + ")")}</td>
-    <td>{planet.environment.fertility == -1 ? "-" : numberForUser(30 * planet.environment.fertility) + "%"}</td>
+    <td>{planet.environment.fertility == -1 ? "-" : numberForUser(100 / 3.3 * planet.environment.fertility) + "%"}</td>
     {[["MCG", "AEF"], ["SEA", "HSE"], ["INS", "TSH"], ["MGC", "BL"]].map(mats => {
       const used = mats.filter(m => planetMaterials.indexOf(m) != -1)[0]
       return <td key={mats.join()} className={used ? styleForMaterial(materials[used]?.category) : ""}>{used}</td>
@@ -416,7 +439,7 @@ Universe maximum: ${numberForUser(100 * r.perDay / maxResources[r.material], 0)}
     {
       planet.resources.filter(r => materialFilter.indexOf(r.material) == -1).sort((a, b) => b.perDay - a.perDay).map(r =>
         <td key={r.material} className={styleForMaterial(materials[r.material]?.category)} style={{ textAlign: "right" }} title={getResourceTooltip(r)}>
-          {<div style={{ display: "flex", justifyContent: "space-between" }}><div> {r.material}</div>{showResource(r)}</div>}
+          {<div style={{ display: "flex", justifyContent: "space-between", color: minRates && minRates[r.material] > r.perDay ? "grey" : undefined }}><div> {r.material}</div>{showResource(r)}</div>}
         </td>
       ).concat(new Array(5).fill(0).map((_, idx) => <td key={"filler" + idx} />)).slice(0, 5).flat()
     }

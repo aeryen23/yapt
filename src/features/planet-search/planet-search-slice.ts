@@ -12,6 +12,7 @@ const PlanetSearchSlice = createSlice({
     materialFilter: [] as string[],
     materialFilterAnd: false,
     buildingMaterialFilter: [...defaultBuildingMaterialsFilter],
+    minimumExtractionRatePercentage: undefined as number | undefined,
   },
   reducers: {
     setStartSystem(state, action: PayloadAction<string>) {
@@ -55,11 +56,14 @@ const PlanetSearchSlice = createSlice({
       }
       state.maxJumps = jumps
     },
+    setMinimumExtractionRatePercentage(state, action: PayloadAction<number | undefined>) {
+      state.minimumExtractionRatePercentage = action.payload ? Math.min(100, Math.max(0, action.payload)) : undefined
+    },
   }
 })
 
 export const {
-  setStartSystem, setMaxJumps,
+  setStartSystem, setMaxJumps, setMinimumExtractionRatePercentage,
   toggleMaterialFilter, clearMaterialFilter, setMaterialFilterAnd,
   toggleBuildingMaterialFilter, resetBuildingMaterialFilter,
 } = PlanetSearchSlice.actions
@@ -79,4 +83,7 @@ export function selectMaterialFilterAnd() {
 }
 export function selectBuildingMaterialFilter() {
   return useAppSelector(state => state.settings.planetSearch.buildingMaterialFilter)
+}
+export function selectMinimumExtractionRatePercentage() {
+  return useAppSelector(state => state.settings.planetSearch.minimumExtractionRatePercentage)
 }
