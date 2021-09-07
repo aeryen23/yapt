@@ -54,7 +54,7 @@ export function PlayerBaseStatistics() {
       onClick={() => history.push("/basecount?selected=" + d.baseCount)} />
   </g>)
   return (<div>
-    <svg width={width + 20} height="300" >
+    <svg width={width + 20} height={70 + processedData.length * 30} >
       <g className={styles.container}>
         <text className={styles.title} x="10" y="30">Player bases by count</text>
         <g className={styles.chart} transform="translate(15,60)">
