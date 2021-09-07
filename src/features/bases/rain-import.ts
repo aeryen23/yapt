@@ -19,6 +19,7 @@ export function importStorage(text: string, dispatch: ReturnType<typeof useAppDi
           Scientists: convertWorkforce(msg.colony.workforces.c),
         },
         experts: EXPERTISES.reduce((acc, e) => ({ ...acc, [e]: 0 }), {} as Record<BuildingCategory, number>),
+        cogcFocus: undefined,
       }
       for (const building of msg.colony.buildings) {
         if (!base.buildings[building.ticker])
