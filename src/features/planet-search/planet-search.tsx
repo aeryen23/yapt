@@ -470,7 +470,7 @@ function Infrastructure({ infrastructure }: { infrastructure: PlanetInfrastructu
   const buildings = selectBuildings()
 
   function showInfra(code: keyof typeof infrastructureIcons) {
-    if (infrastructure[infrastructureAvailableKey[code]])
+    if (buildings[code] && infrastructure[infrastructureAvailableKey[code]])
       return <span key={code} title={code + "\n" + buildingTranslations[buildings[code].name].name}>{infrastructureIcons[code]}</span>
   }
 

@@ -47,7 +47,7 @@ const materialsDesc: StoreDescriptor<FioMaterial, Material> = {
     volume: entry.Volume,
   })),
   set: entries => store.dispatch(setMaterials(entries)),
-  internalIdMapping: { internalId: "MatId", id: "Ticker" },
+  internalIdMapping: { internalId: "MaterialId", id: "Ticker" },
 }
 const buildingsDesc: StoreDescriptor<FioBuilding, Building> = {
   name: "buildings", id: "id", path: "/building/allbuildings",
@@ -82,7 +82,7 @@ const systemsDesc: StoreDescriptor<FioSystemStar, System> = {
       id: entry.NaturalId,
       name: entry.Name,
       type: entry.Type,
-      connections: entry.Connections.map(c => systemIdtoId[c.Connection]),
+      connections: entry.Connections.map(c => systemIdtoId[c.ConnectingId]),
       position: [entry.PositionX, entry.PositionY, entry.PositionZ],
       sector: entry.SectorId,
       subSector: entry.SubSectorId,

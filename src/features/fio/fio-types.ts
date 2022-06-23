@@ -2,7 +2,7 @@ export interface FioMaterial {
   CategoryName:      string;
   CategoryId:        string;
   Name:              string;
-  MatId:             string;
+  MaterialId:        string;
   Ticker:            string;
   Weight:            number;
   Volume:            number;
@@ -13,6 +13,7 @@ export interface FioMaterial {
 export interface FioBuilding {
   BuildingCosts:     FioCommodityAmount[];
   Recipes:           FioRecipe[];
+  BuildingId:        string;
   Name:              string;
   Ticker:            string;
   Expertise:         BuildingCategory | null;
@@ -37,6 +38,7 @@ export interface FioCommodityAmount {
 export interface FioRecipe {
   Inputs:     FioCommodityAmount[];
   Outputs:    FioCommodityAmount[];
+  BuildingRecipeId: string;
   DurationMs: number;
   RecipeName: string;
 }
@@ -166,7 +168,7 @@ export type BuildingCategory = "AGRICULTURE" | "CHEMISTRY" | "CONSTRUCTION" | "E
 
 
 export interface FioSystemStar {
-  Connections:       { Connection: string; }[];
+  Connections:       { SystemConnectionId: string; ConnectingId: string; }[];
   SystemId:          string;
   Name:              string;
   NaturalId:         string;
