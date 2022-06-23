@@ -250,17 +250,31 @@ const ID_MAP_STORE = "idMaps"
 class Idb {
   static async open() {
     return new Idb(await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("worldData", 1)
+      const request = indexedDB.open("worldData", 2)
       request.onupgradeneeded = (e) => {
         const db = request.result
-        if (e.oldVersion < 1) {
+        if (e.oldVersion === 1) {
+          // delete all data because it might be contain wrong data from the FIO API changes
+          db.deleteObjectStore(FETCHES_STORE)
+          db.deleteObjectStore(ID_MAP_STORE)
+          for (const { name } of Object.values(idbStores))
+            db.deleteObjectStore(name)
+        }
+        if (e.oldVersion <= 1) {
           db.createObjectStore(FETCHES_STORE, { keyPath: "id" })
           db.createObjectStore(ID_MAP_STORE)
           for (const { name, id } of Object.values(idbStores))
             db.createObjectStore(name, { keyPath: id })
         }
       }
-      request.onsuccess = () => resolve(request.result)
+      request.onsuccess = () => {
+        const db = request.result
+        db.onversionchange = () => {
+          db.close()
+          // TODO: could inform the user to reload the page
+        }
+        resolve(db)
+      }
       request.onerror = reject
     }))
   }
